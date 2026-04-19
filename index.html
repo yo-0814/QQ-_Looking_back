@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>救急外来 振り返りシート</title>
+<title>振り返りシート</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#f2f4f7;color:#1a1a1a;min-height:100vh;padding-bottom:48px;}
@@ -19,7 +19,7 @@ header p{font-size:12px;opacity:.8;margin-top:2px;}
 .req{color:#e53e3e;margin-left:2px;}
 .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 input[type=number]{width:68px;padding:8px 6px;border:1px solid #d0d7e0;border-radius:8px;font-size:15px;text-align:center;-webkit-appearance:none;appearance:none;}
-input[type=text]{width:100%;padding:9px 10px;border:1px solid #d0d7e0;border-radius:8px;font-size:14px;font-family:inherit;}
+input[type=text],input[type=password]{width:100%;padding:9px 10px;border:1px solid #d0d7e0;border-radius:8px;font-size:14px;font-family:inherit;}
 textarea{width:100%;padding:9px 10px;border:1px solid #d0d7e0;border-radius:8px;font-size:14px;resize:vertical;min-height:72px;font-family:inherit;line-height:1.5;}
 .chips{display:flex;gap:6px;flex-wrap:wrap;}
 .chip,.mchip,.sch,.sbtn{cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation;}
@@ -209,6 +209,18 @@ textarea{width:100%;padding:9px 10px;border:1px solid #d0d7e0;border-radius:8px;
 <button class="hist-btn" id="btn-hist">📋 過去の記録を見る</button>
 <button class="exp-btn" id="btn-exp">📥 CSVエクスポート</button>
 
+<!-- 保存確認 -->
+<div class="cfmbg" id="m-save-confirm">
+  <div class="cfm">
+    <p>保存しますか？</p>
+    <div class="cfm-btns">
+      <button class="b-cfm-c" id="btn-save-no">いいえ</button>
+      <button class="b-cfm-bl" id="btn-save-yes">はい</button>
+    </div>
+  </div>
+</div>
+
+<!-- 保存完了 -->
 <div class="cfmbg" id="m-done">
   <div class="cfm">
     <p>保存しました。<br>終了しますか？</p>
@@ -219,6 +231,20 @@ textarea{width:100%;padding:9px 10px;border:1px solid #d0d7e0;border-radius:8px;
   </div>
 </div>
 
+<!-- 暗証番号 -->
+<div class="cfmbg" id="m-pin">
+  <div class="cfm">
+    <p>暗証番号を入力してください</p>
+    <input type="password" id="pin-input" placeholder="0000" style="width:100%;padding:10px;border:1px solid #d0d7e0;border-radius:8px;font-size:18px;text-align:center;letter-spacing:8px;margin-bottom:8px;">
+    <div style="font-size:11px;color:#e53e3e;margin-bottom:12px;display:none;" id="pin-err">暗証番号が違います</div>
+    <div class="cfm-btns">
+      <button class="b-cfm-c" id="btn-pin-cancel">キャンセル</button>
+      <button class="b-cfm-bl" id="btn-pin-ok">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- 履歴 -->
 <div class="mbg" id="m-hist">
   <div class="modal">
     <div class="mhead"><h3>過去の記録</h3><button class="mcls" id="btn-close-hist">×</button></div>
@@ -226,6 +252,7 @@ textarea{width:100%;padding:9px 10px;border:1px solid #d0d7e0;border-radius:8px;
   </div>
 </div>
 
+<!-- 詳細 -->
 <div class="mbg" id="m-detail">
   <div class="modal">
     <div class="mhead"><h3 id="m-detail-title">記録の詳細</h3><button class="mcls" id="btn-close-detail">×</button></div>
@@ -233,6 +260,7 @@ textarea{width:100%;padding:9px 10px;border:1px solid #d0d7e0;border-radius:8px;
   </div>
 </div>
 
+<!-- 削除確認 -->
 <div class="cfmbg" id="m-cfm">
   <div class="cfm">
     <p>この記録を削除しますか？<br>この操作は取り消せません。</p>
@@ -255,9 +283,12 @@ document.getElementById('hdate').textContent=fmtD(today);
 function ge(id){return document.getElementById(id);}
 function noErr(id){ge(id).style.display='none';}
 function showErr(id){ge(id).style.display='block';}
-function tap(el,fn){el.addEventListener('touchend',function(e){e.preventDefault();fn();});el.addEventListener('click',fn);}
+function tap(el,fn){
+  el.addEventListener('touchend',function(e){e.preventDefault();fn();});
+  el.addEventListener('click',fn);
+}
 
-// 固定ボタン
+// イベント登録
 tap(ge('s-day'),function(){selShift('day');});
 tap(ge('s-night'),function(){selShift('night');});
 tap(ge('st-enough'),function(){selStaff('enough');});
@@ -279,9 +310,13 @@ tap(ge('btn-add-comm'),function(){addComm();});
 tap(ge('btn-add-case'),function(){addCase();});
 tap(ge('btn-save'),function(){save();});
 tap(ge('btn-hist'),function(){openHist();});
-tap(ge('btn-exp'),function(){exportCSV();});
+tap(ge('btn-exp'),function(){openPin();});
+tap(ge('btn-save-no'),function(){ge('m-save-confirm').classList.remove('open');});
+tap(ge('btn-save-yes'),function(){ge('m-save-confirm').classList.remove('open');doSave();});
 tap(ge('btn-continue'),function(){ge('m-done').classList.remove('open');});
 tap(ge('btn-exit'),function(){window.close();});
+tap(ge('btn-pin-cancel'),function(){ge('m-pin').classList.remove('open');ge('pin-input').value='';ge('pin-err').style.display='none';});
+tap(ge('btn-pin-ok'),function(){checkPin();});
 tap(ge('btn-close-hist'),function(){closeHist();});
 tap(ge('btn-close-detail'),function(){closeDetail();});
 tap(ge('btn-cfm-cancel'),function(){closeCfm();});
@@ -340,21 +375,16 @@ function reindexComm(){
 }
 
 function addComm(){
-  commN++;
-  var n=commN;
+  commN++;var n=commN;
   var d=document.createElement('div');
   d.id='cn-'+n;d.className='comm-block';
   d.style.cssText='background:#fff;border:1px solid #e0e7ef;border-radius:10px;padding:12px;margin-bottom:8px;position:relative;';
-
   var lbl=document.createElement('div');lbl.className='clbl';lbl.textContent='対象 1';d.appendChild(lbl);
-
   var rm=document.createElement('button');rm.className='rm';rm.textContent='×';
   rm.addEventListener('touchend',function(e){e.preventDefault();d.remove();reindexComm();});
   rm.addEventListener('click',function(){d.remove();reindexComm();});
   d.appendChild(rm);
-
   var tl=document.createElement('div');tl.className='lbl';tl.style.marginBottom='6px';tl.textContent='対象';d.appendChild(tl);
-
   var cw=document.createElement('div');cw.className='chips';cw.style.marginBottom='10px';
   ['看護師','医師','患者','その他'].forEach(function(label){
     var c=document.createElement('div');c.className='mchip';c.textContent=label;
@@ -363,12 +393,9 @@ function addComm(){
     cw.appendChild(c);
   });
   d.appendChild(cw);
-
   var cl=document.createElement('div');cl.className='lbl';cl.style.marginBottom='4px';cl.textContent='コメント';
   var rq=document.createElement('span');rq.className='req';rq.textContent='*';cl.appendChild(rq);d.appendChild(cl);
-
   var ta=document.createElement('textarea');ta.id='ct-'+n;ta.placeholder='具体的な状況や内容を入力してください';ta.style.minHeight='60px';d.appendChild(ta);
-
   ge('comm-con').appendChild(d);reindexComm();noErr('e-comm-n');
 }
 
@@ -386,17 +413,13 @@ function getCommNotes(){
 function addCase(){
   caseN++;var n=caseN;
   var d=document.createElement('div');d.className='case-card';d.id='cc-'+n;
-
   var lbl=document.createElement('div');lbl.className='clbl';lbl.textContent='症例 '+n;d.appendChild(lbl);
-
   var rm=document.createElement('button');rm.className='rm';rm.textContent='×';
   rm.addEventListener('touchend',function(e){e.preventDefault();d.remove();});
   rm.addEventListener('click',function(){d.remove();});
   d.appendChild(rm);
-
   var tl=document.createElement('div');tl.className='lbl';tl.style.marginBottom='6px';tl.textContent='搬送区分';
   var r1=document.createElement('span');r1.className='req';r1.textContent='*';tl.appendChild(r1);d.appendChild(tl);
-
   var tc=document.createElement('div');tc.className='chips';tc.style.marginBottom='10px';
   var trMap=[['a','🚑 救急車'],['w','🚶 ウォークイン'],['o','その他']];
   trMap.forEach(function(pair){
@@ -408,13 +431,10 @@ function addCase(){
     tc.appendChild(c);
   });
   d.appendChild(tc);
-
   var il=document.createElement('div');il.className='lbl';il.style.marginBottom='4px';il.textContent='患者ID';d.appendChild(il);
   var ii=document.createElement('input');ii.type='text';ii.id='ci-'+n;ii.placeholder='例：123456';ii.style.marginBottom='10px';d.appendChild(ii);
-
   var nl=document.createElement('div');nl.className='lbl';nl.style.marginBottom='4px';nl.textContent='気になった内容';
   var r2=document.createElement('span');r2.className='req';r2.textContent='*';nl.appendChild(r2);d.appendChild(nl);
-
   var ta=document.createElement('textarea');ta.id='cn2-'+n;ta.placeholder='疾患、対応、気づいたことなど';d.appendChild(ta);
   ge('cases-con').appendChild(d);
 }
@@ -463,6 +483,10 @@ function setRecs(r){localStorage.setItem('nr',JSON.stringify(r));}
 
 function save(){
   if(!validate()){showToast('未入力の項目があります',true);return;}
+  ge('m-save-confirm').classList.add('open');
+}
+
+function doSave(){
   var now=new Date(),sLbl=staffS==='enough'?'十分':staffS==='normal'?'普通':'不足';
   var pfIds=['team','comm','care','speed','other2'],pfTags=[];
   pfIds.forEach(function(k){var el=ge('pf-'+k);if(el&&el.classList.contains('sel'))pfTags.push(el.textContent);});
@@ -486,6 +510,22 @@ function save(){
   if(editIdx!==null){recs[editIdx]=rec;editIdx=null;}else recs.unshift(rec);
   setRecs(recs);
   ge('m-done').classList.add('open');
+}
+
+function openPin(){
+  ge('pin-input').value='';
+  ge('pin-err').style.display='none';
+  ge('m-pin').classList.add('open');
+}
+function checkPin(){
+  if(ge('pin-input').value==='0000'){
+    ge('m-pin').classList.remove('open');
+    ge('pin-input').value='';
+    ge('pin-err').style.display='none';
+    doExportCSV();
+  }else{
+    ge('pin-err').style.display='block';
+  }
 }
 
 function buildHist(){
@@ -560,11 +600,11 @@ function openDetail(idx){
     +'<div class="ds"><div class="dst">気になった症例</div>'+csHtml+'</div>'
     +(r.free?'<div class="ds"><div class="dst">共有したいこと</div><div style="font-size:13px;">'+r.free+'</div></div>':'')
     +'<div class="btn-row">'
-    +'<button class="b-edit" id="det-edit-'+idx+'">✏️ 編集する</button>'
-    +'<button class="b-del" id="det-del-'+idx+'">🗑 削除する</button>'
+    +'<button class="b-edit" id="det-edit">✏️ 編集する</button>'
+    +'<button class="b-del" id="det-del">🗑 削除する</button>'
     +'</div>';
   ge('m-detail-body').innerHTML=html;
-  var editBtn=ge('det-edit-'+idx),delBtn=ge('det-del-'+idx);
+  var editBtn=ge('det-edit'),delBtn=ge('det-del');
   editBtn.addEventListener('touchend',function(e){e.preventDefault();startEdit(idx);});
   editBtn.addEventListener('click',function(){startEdit(idx);});
   delBtn.addEventListener('touchend',function(e){e.preventDefault();askDel(idx);});
@@ -616,7 +656,7 @@ function doDelete(){
   closeCfm();closeDetail();showToast('削除しました');openHist();
 }
 
-function exportCSV(){
+function doExportCSV(){
   var recs=getRecs();
   if(!recs.length){showToast('保存されたデータがありません',true);return;}
   var mc=0,cc=0;
