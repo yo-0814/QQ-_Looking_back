@@ -52,19 +52,11 @@
     border: 1px solid var(--line);
     border-radius: 14px;
   }
-  .card-accent {
-    position: relative;
-  }
-  .card-accent::before {
-    content: "";
-    position: absolute; left: 0; top: 14px; bottom: 14px;
-    width: 3px; border-radius: 2px;
-    background: linear-gradient(180deg, var(--navy-700), var(--blue-400));
-  }
 
   /* Input base */
   .fld {
     width: 100%;
+    box-sizing: border-box;
     border: 1.5px solid var(--line-strong);
     background: #fff;
     border-radius: 10px;
@@ -72,12 +64,26 @@
     font-size: 16px; /* prevent iOS zoom */
     color: var(--navy-900);
     transition: border-color .15s, box-shadow .15s, background .15s;
+    -webkit-appearance: none;
+    appearance: none;
+    font-family: inherit;
   }
   .fld:focus {
     outline: none;
     border-color: var(--blue-500);
     box-shadow: 0 0 0 3px rgba(47,111,184,0.15);
   }
+  /* iOS Safari: type=date が大きく表示される問題を抑制 */
+  input[type="date"].fld {
+    min-height: 48px;
+    line-height: 1.2;
+    display: block;
+  }
+  input[type="date"].fld::-webkit-date-and-time-value {
+    text-align: left;
+    min-height: 1.2em;
+  }
+  input[type="number"].fld { -moz-appearance: textfield; }
   textarea.fld { min-height: 76px; resize: vertical; line-height: 1.55; }
   select.fld {
     appearance: none;
@@ -177,24 +183,14 @@
 
   /* Section header */
   .sec-head {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 4px;
-  }
-  .sec-num {
-    font-family: 'Zen Kaku Gothic New', sans-serif;
-    font-weight: 900;
-    font-size: 11px;
-    color: var(--blue-500);
-    background: var(--soft-info);
-    padding: 3px 8px;
-    border-radius: 999px;
-    letter-spacing: 0.1em;
+    margin-bottom: 14px;
   }
   .sec-title {
     font-family: 'Zen Kaku Gothic New', sans-serif;
     font-weight: 700;
     font-size: 17px;
     color: var(--navy-900);
+    line-height: 1.4;
   }
   .sec-title-required::after {
     content: "※";
@@ -397,10 +393,10 @@
   }
 
   /* Number stepper */
-  .stepper { display: flex; align-items: stretch; border: 1.5px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: #fff; width: 100%; min-height: 52px; }
-  .stepper button { flex: 0 0 42px; font-size: 20px; font-weight: 700; color: var(--navy-700); background: #fafbfc; }
+  .stepper { display: flex; align-items: stretch; border: 1.5px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: #fff; width: 100%; min-height: 52px; box-sizing: border-box; }
+  .stepper button { flex: 0 0 42px; font-size: 20px; font-weight: 700; color: var(--navy-700); background: #fafbfc; box-sizing: border-box; }
   .stepper button:active { background: var(--soft-info); }
-  .stepper input { flex: 1; min-width: 0; width: 100%; text-align: center; font-size: 17px; font-weight: 700; border: none; outline: none; color: var(--navy-900); background: #fff; padding: 0 4px; }
+  .stepper input { flex: 1; min-width: 0; width: 100%; text-align: center; font-size: 17px; font-weight: 700; border: none; outline: none; color: var(--navy-900); background: #fff; padding: 0 4px; box-sizing: border-box; -webkit-appearance: none; appearance: none; -moz-appearance: textfield; }
   .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 </style>
 </head>
@@ -445,14 +441,10 @@
   <section id="tab-input" class="space-y-4">
 
     <!-- 基本情報 -->
-    <div class="card card-accent p-5 pl-6">
+    <div class="card p-5">
       <div class="sec-head">
-        <span class="sec-num">BASIC</span>
-        <div>
-          <div class="sec-title">基本情報</div>
-        </div>
+        <div class="sec-title">基本情報</div>
       </div>
-      <div class="hr-soft"></div>
 
       <div class="grid grid-cols-2 gap-3">
         <div class="col-span-2">
@@ -497,15 +489,10 @@
     </div>
 
     <!-- 労働環境 -->
-    <div class="card card-accent p-5 pl-6">
+    <div class="card p-5">
       <div class="sec-head">
-        <span class="sec-num">WORKLOAD</span>
-        <div>
-          <div class="sec-title">休憩や時間外</div>
-          <div class="sec-desc">休憩確保率と応援要請の実態を蓄積します</div>
-        </div>
+        <div class="sec-title">休憩や時間外</div>
       </div>
-      <div class="hr-soft"></div>
 
       <label class="lbl lbl-required">休憩の確保</label>
       <div class="seg seg-2" data-seg-field="break_secured">
@@ -554,14 +541,10 @@
     </div>
 
     <!-- セクション1 -->
-    <div class="card card-accent p-5 pl-6">
+    <div class="card p-5">
       <div class="sec-head">
-        <span class="sec-num">SECTION 1</span>
-        <div>
-          <div class="sec-title sec-title-required">チームの状態</div>
-        </div>
+        <div class="sec-title sec-title-required">チームの状態</div>
       </div>
-      <div class="hr-soft"></div>
 
       <div class="space-y-4" id="team_ratings">
         <div data-rate-group="team_collab">
@@ -595,14 +578,10 @@
     </div>
 
     <!-- セクション2 -->
-    <div class="card card-accent p-5 pl-6">
+    <div class="card p-5">
       <div class="sec-head">
-        <span class="sec-num">SECTION 2</span>
-        <div>
-          <div class="sec-title sec-title-required">患者・家族への関わり</div>
-        </div>
+        <div class="sec-title sec-title-required">患者・家族への関わり</div>
       </div>
-      <div class="hr-soft"></div>
 
       <div class="space-y-4">
         <div>
@@ -637,15 +616,10 @@
     </div>
 
     <!-- セクション3 -->
-    <div class="card card-accent p-5 pl-6">
+    <div class="card p-5">
       <div class="sec-head">
-        <span class="sec-num">SECTION 3</span>
-        <div>
-          <div class="sec-title sec-title-required">振り返りケース</div>
-          <div class="sec-desc">印象的／学びのあった症例があれば</div>
-        </div>
+        <div class="sec-title sec-title-required">振り返りケース</div>
       </div>
-      <div class="hr-soft"></div>
 
       <div class="seg seg-2" data-seg-field="case_exists">
         <button class="seg-btn" data-val="あり">あり</button>
@@ -682,15 +656,10 @@
     </div>
 
     <!-- セクション4 -->
-    <div class="card card-accent p-5 pl-6">
+    <div class="card p-5">
       <div class="sec-head">
-        <span class="sec-num">SECTION 4</span>
-        <div>
-          <div class="sec-title">共有事項</div>
-          <div class="sec-desc">任意</div>
-        </div>
+        <div class="sec-title">共有事項<span class="text-[12px] font-normal text-[var(--muted)] ml-2">任意</span></div>
       </div>
-      <div class="hr-soft"></div>
       <textarea id="f_share" class="fld" placeholder="チームに共有したいこと、気づき、提案など"></textarea>
     </div>
 
@@ -849,15 +818,6 @@
       <label class="lbl">フリー検索</label>
       <input type="text" id="statsFreeSearch" class="fld mb-3" placeholder="キーワード（記録者・メモ・症例内容など）" />
 
-      <label class="lbl">表示項目</label>
-      <select id="statsScope" class="fld">
-        <option value="all">すべて表示</option>
-        <option value="summary">サマリーのみ</option>
-        <option value="break">休憩・労働環境のみ</option>
-        <option value="team_state">チームの状態のみ</option>
-        <option value="patient_care">患者家族への関わりのみ</option>
-      </select>
-
       <button type="button" id="statsClearBtn" class="btn-secondary w-full mt-3 text-[12px]">絞り込みをリセット</button>
     </div>
 
@@ -950,7 +910,7 @@
 ================================================================ */
 
 const STORAGE_KEY = "er_reflection_v1";
-const PIN_CODE = "1234";
+const PIN_CODE = "0000";
 
 // ------------ State ------------
 let formState = {
@@ -1112,7 +1072,6 @@ function setupFilters() {
   // フリー検索（履歴・統計）
   $("#histFreeSearch").addEventListener("input", debounce(renderHistory, 180));
   $("#statsFreeSearch").addEventListener("input", debounce(renderStats, 180));
-  $("#statsScope").addEventListener("change", renderStats);
 
   // リセットボタン
   $("#histClearBtn").addEventListener("click", () => {
@@ -1123,7 +1082,6 @@ function setupFilters() {
   $("#statsClearBtn").addEventListener("click", () => {
     clearChipGroups("stats");
     $("#statsFreeSearch").value = "";
-    $("#statsScope").value = "all";
     renderStats();
   });
 }
@@ -1453,7 +1411,6 @@ function avg(arr) {
 
 function renderStats() {
   const days = getActiveDays("#statsFilter");
-  const scope = $("#statsScope").value;
   const filters = readStatsFilters();
   const baseRecords = filterByDays(loadAll(), days);
   const records = applyFilters(baseRecords, filters);
@@ -1501,11 +1458,6 @@ function renderStats() {
   const helpYesCount = records.filter(r => r.workload.break_secured === "確保できなかった" && r.workload.help_requested === "あり").length;
   const helpNoCount = records.filter(r => r.workload.break_secured === "確保できなかった" && r.workload.help_requested === "なし").length;
 
-  const showSummary = scope === "all" || scope === "summary";
-  const showBreak = scope === "all" || scope === "break";
-  const showTeam = scope === "all" || scope === "team_state";
-  const showPatient = scope === "all" || scope === "patient_care";
-
   const metricBlock = (title, icon, arr) => `
     <div class="card p-5 mb-4">
       <div class="flex items-center gap-2 mb-3">
@@ -1536,7 +1488,7 @@ function renderStats() {
   let html = "";
 
   // サマリー
-  if (showSummary) {
+  {
     html += `
       <div class="grid grid-cols-3 gap-3 mb-4">
         <div class="stat-tile">
@@ -1555,7 +1507,7 @@ function renderStats() {
   }
 
   // 休憩や時間外 ― 未確保時の状況を可視化
-  if (showBreak) {
+  {
     const securedPct = breakSecuredRate;
     const missPct = breakMissRate;
 
@@ -1680,14 +1632,10 @@ function renderStats() {
   }
 
   // チームの状態
-  if (showTeam) {
-    html += metricBlock("チームの状態", statsIcon, teamAvgs);
-  }
+  html += metricBlock("チームの状態", statsIcon, teamAvgs);
 
   // 患者家族
-  if (showPatient) {
-    html += metricBlock("患者家族への関わり", statsIcon, patientAvgs);
-  }
+  html += metricBlock("患者家族への関わり", statsIcon, patientAvgs);
 
   el.innerHTML = filterNote + html;
 }
