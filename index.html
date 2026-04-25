@@ -444,6 +444,102 @@
     border-bottom: 1px solid var(--line);
   }
 
+  /* Notification bell */
+  .bell-btn {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--navy-700);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .bell-btn:active { background: var(--soft-info); border-radius: 8px; }
+  .bell-badge {
+    position: absolute;
+    top: 6px;
+    right: 4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--bad);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    line-height: 1;
+  }
+  .bell-badge.hidden { display: none; }
+
+  /* Share notification list modal */
+  .share-modal {
+    background: #fff;
+    border-radius: 16px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalIn .2s ease;
+  }
+  .share-modal-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .share-modal-body {
+    overflow-y: auto;
+    padding: 14px;
+    flex: 1;
+    background: var(--paper);
+  }
+  .share-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    transition: border-color .15s;
+  }
+  .share-card[data-unread="true"] {
+    border-left-color: var(--blue-500);
+    background: linear-gradient(90deg, var(--soft-info) 0%, #fff 30%);
+  }
+  .share-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .share-card-body {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--navy-900);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .share-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
   /* Number stepper */
   .stepper { display: flex; align-items: stretch; border: 1.5px solid var(--line-strong); border-radius: 10px; overflow: hidden; background: #fff; width: 100%; min-height: 52px; box-sizing: border-box; }
   .stepper button { flex: 0 0 42px; font-size: 20px; font-weight: 700; color: var(--navy-700); background: #fafbfc; box-sizing: border-box; }
@@ -471,7 +567,7 @@
 
 <!-- ============ TABS ============ -->
 <div class="tabs-wrap">
-  <div class="max-w-xl mx-auto flex">
+  <div class="max-w-xl mx-auto flex items-stretch">
     <button class="tab-btn" data-tab="input" data-active="true">
       <svg viewBox="0 0 24 24" width="16" height="16" class="ico"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
       入力
@@ -483,6 +579,10 @@
     <button class="tab-btn" data-tab="stats">
       <svg viewBox="0 0 24 24" width="16" height="16" class="ico"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 6-6"/></svg>
       統計
+    </button>
+    <button class="bell-btn" id="bellBtn" aria-label="共有事項の通知">
+      <svg viewBox="0 0 24 24" width="20" height="20" class="ico"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      <span class="bell-badge hidden" id="bellBadge">0</span>
     </button>
   </div>
 </div>
@@ -940,6 +1040,23 @@
   </div>
 </div>
 
+<!-- ============ MODAL: SHARE LIST ============ -->
+<div class="modal-backdrop" id="shareModal">
+  <div class="share-modal">
+    <div class="share-modal-header">
+      <div class="flex items-center gap-2">
+        <svg viewBox="0 0 24 24" width="20" height="20" class="ico text-[var(--navy-700)]"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <div class="font-display font-bold text-[16px]">共有事項</div>
+        <span class="text-[11px] text-[var(--muted)]" id="shareModalCount">0件</span>
+      </div>
+      <button class="text-[var(--muted)] p-2 -m-2" onclick="closeModal('shareModal')" aria-label="閉じる">
+        <svg viewBox="0 0 24 24" width="20" height="20" class="ico"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="share-modal-body" id="shareModalBody"></div>
+  </div>
+</div>
+
 <!-- ============ MODAL: PIN ============ -->
 <div class="modal-backdrop" id="pinModal">
   <div class="modal">
@@ -974,6 +1091,7 @@
 ================================================================ */
 
 const STORAGE_KEY = "er_reflection_v1";
+const READ_KEY = "er_reflection_read_v1";
 const PIN_CODE = "0000";
 
 // ------------ State ------------
@@ -1023,7 +1141,9 @@ function init() {
   setupFilters();
   setupSaveFlow();
   setupExport();
+  setupNotification();
   refreshReporterList();
+  refreshNotificationBadge();
 
   renderHistory();
   renderStats();
@@ -1039,6 +1159,88 @@ function refreshReporterList() {
       .filter(Boolean)
   )].sort((a,b) => a.localeCompare(b, "ja"));
   dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join("");
+}
+
+// ------------ Notification (Share items) ------------
+const loadReadIds = () => {
+  try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || "[]")); }
+  catch { return new Set(); }
+};
+const saveReadIds = (set) => localStorage.setItem(READ_KEY, JSON.stringify([...set]));
+
+// 共有事項のある記録のみ抽出（新しい順）
+function getShareRecords() {
+  return loadAll()
+    .filter(r => r.share && r.share.trim())
+    .sort((a,b) => b.saved_at_ms - a.saved_at_ms);
+}
+
+// 未読件数を計算してバッジを更新
+function refreshNotificationBadge() {
+  const badge = $("#bellBadge");
+  if (!badge) return;
+  const readIds = loadReadIds();
+  const shareRecords = getShareRecords();
+  const unreadCount = shareRecords.filter(r => !readIds.has(r.id)).length;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 99 ? "99+" : unreadCount;
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+
+// 共有事項モーダルを開く（同時に表示された未読を全て既読化）
+function openShareModal() {
+  const shareRecords = getShareRecords();
+  const readIds = loadReadIds();
+  const body = $("#shareModalBody");
+  const countEl = $("#shareModalCount");
+
+  countEl.textContent = `${shareRecords.length}件`;
+
+  if (!shareRecords.length) {
+    body.innerHTML = `<div class="share-empty">共有事項の記録はまだありません</div>`;
+  } else {
+    body.innerHTML = shareRecords.map(r => {
+      const isUnread = !readIds.has(r.id);
+      const shiftBadge = r.shift === "夜勤"
+        ? `<span class="badge badge-night">🌙 夜勤</span>`
+        : `<span class="badge badge-day">☀ 日勤</span>`;
+      return `
+        <div class="share-card" data-unread="${isUnread}">
+          <div class="share-card-meta">
+            ${shiftBadge}
+            <span class="text-[12px] font-bold num-tabular text-[var(--navy-800)]">${r.date}</span>
+            ${isUnread ? `<span class="badge" style="background:#dbeafe;color:#1e40af;margin-left:auto">NEW</span>` : ""}
+          </div>
+          <div class="share-card-body">${escapeHtml(r.share)}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  openModal("shareModal");
+
+  // 表示された全件を既読化（少し遅らせてアニメーションを見せる）
+  setTimeout(() => {
+    const newReadIds = loadReadIds();
+    let changed = false;
+    shareRecords.forEach(r => {
+      if (!newReadIds.has(r.id)) {
+        newReadIds.add(r.id);
+        changed = true;
+      }
+    });
+    if (changed) {
+      saveReadIds(newReadIds);
+      refreshNotificationBadge();
+    }
+  }, 600);
+}
+
+function setupNotification() {
+  $("#bellBtn").addEventListener("click", openShareModal);
 }
 
 // ------------ Segmented buttons ------------
@@ -1244,16 +1446,19 @@ function setupSaveFlow() {
     all.push(record);
     saveAll(all);
     refreshReporterList();
+    refreshNotificationBadge();
     closeModal("confirmModal");
     openModal("postSaveModal");
   });
 
   $("#postCloseBtn").addEventListener("click", () => {
     closeModal("postSaveModal");
+    refreshNotificationBadge();
   });
   $("#postNewBtn").addEventListener("click", () => {
     closeModal("postSaveModal");
     resetForm();
+    refreshNotificationBadge();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 }
