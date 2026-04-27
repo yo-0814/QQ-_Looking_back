@@ -247,9 +247,10 @@
     font-size: 16px;
     letter-spacing: 0.04em;
     box-shadow: 0 8px 20px -10px rgba(11,30,63,0.5);
-    transition: transform .1s, box-shadow .15s;
+    transition: transform .1s, box-shadow .15s, opacity .15s;
   }
   .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.6; pointer-events: none; }
   .btn-secondary {
     background: #fff;
     border: 1.5px solid var(--line-strong);
@@ -297,7 +298,7 @@
   /* Score bar */
   .score-bar {
     height: 6px; border-radius: 3px; background: var(--line);
-    overflow: hidden; position: relative;
+    overflow: hidden;
   }
   .score-bar > div { height: 100%; border-radius: 3px; transition: width .4s ease; }
 
@@ -424,7 +425,7 @@
   }
   .toast[data-show="true"] { opacity: 1; transform: translateX(-50%) translateY(-4px); }
 
-  
+
   /* Scroll tabs */
   .tabs-wrap {
     position: sticky; top: 0; z-index: 40;
@@ -652,7 +653,7 @@
           <div>
             <label class="lbl">不足時間（分）</label>
             <div class="stepper">
-              <button type="button" data-stp="f_short_min" data-delta="-10" data-min="0">−</button>
+              <button type="button" data-stp="f_short_min" data-delta="-10">−</button>
               <input type="number" id="f_short_min" min="0" step="10" value="0" />
               <button type="button" data-stp="f_short_min" data-delta="10">+</button>
             </div>
@@ -660,8 +661,9 @@
           <div>
             <label class="lbl">対象人数</label>
             <div class="stepper">
-              <button type="button" data-stp="f_short_people" data-delta="-1">−</button>
-              <input type="number" id="f_short_people" min="0" value="1" />
+              <!-- 対象人数は最低1名（休憩取れなかった人がいる前提なので） -->
+              <button type="button" data-stp="f_short_people" data-delta="-1" data-min="1">−</button>
+              <input type="number" id="f_short_people" min="1" value="1" />
               <button type="button" data-stp="f_short_people" data-delta="1">+</button>
             </div>
           </div>
@@ -782,16 +784,16 @@
       </div>
     </div>
 
-    <!-- セクション3.5：本日の成功事例（任意・複数件） -->
+    <!-- セクション3.5：本日の good job（任意・複数件） -->
     <div class="card p-5">
       <div class="sec-head">
-        <div class="sec-title">本日の成功事例<span class="text-[12px] font-normal text-[var(--muted)] ml-2">任意</span></div>
-        <p class="text-[11px] text-[var(--muted)] mt-1 leading-relaxed">事例があれば記載</p>
+        <div class="sec-title">本日の good job<span class="text-[12px] font-normal text-[var(--muted)] ml-2">任意</span></div>
+        <p class="text-[11px] text-[var(--muted)] mt-1 leading-relaxed">良かったスタッフへの一言（事例があれば記載）</p>
       </div>
-      <div id="successCases" class="space-y-3"></div>
-      <button type="button" id="addSuccessCaseBtn" class="btn-secondary w-full mt-3 text-[13px] flex items-center justify-center gap-1.5">
+      <div id="goodJobs" class="space-y-3"></div>
+      <button type="button" id="addGoodJobBtn" class="btn-secondary w-full mt-3 text-[13px] flex items-center justify-center gap-1.5">
         <svg viewBox="0 0 24 24" width="14" height="14" class="ico"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-        成功事例を追加
+        good job を追加
       </button>
     </div>
 
@@ -885,7 +887,7 @@
       </div>
 
       <div class="filter-row">
-        <label class="lbl">本日の成功事例</label>
+        <label class="lbl">本日の good job</label>
         <div class="chip-group" data-filter-kind="hist" data-filter-key="success_exists" data-mode="multi">
           <button class="chip" data-val="あり">あり</button>
           <button class="chip" data-val="なし">なし</button>
@@ -905,6 +907,19 @@
 
       <button type="button" id="histClearBtn" class="btn-secondary w-full mt-3 text-[12px]">絞り込みをリセット</button>
       </div>
+    </div>
+
+    <!-- Good Jobランキング（折りたたみ式・期間フィルターと連動） -->
+    <div id="rankingPanel" class="card p-4 filter-panel" data-open="false">
+      <button type="button" class="filter-toggle" data-ranking-toggle>
+        <span class="filter-toggle-left">
+          <svg viewBox="0 0 24 24" width="16" height="16" class="ico" style="color:var(--good)"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+          <span class="text-[13px] font-semibold text-[var(--navy-700)]">Good Job 月間ランキング</span>
+          <span class="filter-count-badge hidden" id="rankingCount" style="background:var(--good)">0</span>
+        </span>
+        <svg viewBox="0 0 24 24" width="18" height="18" class="ico filter-toggle-chevron"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="filter-body" id="rankingBody"></div>
     </div>
 
     <div id="histList" class="space-y-3"></div>
@@ -976,7 +991,7 @@
       </div>
 
       <div class="filter-row">
-        <label class="lbl">本日の成功事例</label>
+        <label class="lbl">本日の good job</label>
         <div class="chip-group" data-filter-kind="stats" data-filter-key="success_exists" data-mode="multi">
           <button class="chip" data-val="あり">あり</button>
           <button class="chip" data-val="なし">なし</button>
@@ -1122,6 +1137,12 @@
 /* ================================================================
    ER Team Reflection — App Logic
    Storage: LocalStorage key "er_reflection_v1"
+
+   データ仕様メモ:
+   - record.case.items[]   : 振り返りケース（新形式・複数件）
+   - record.case.{type, case_id, content} : 旧形式（読み取り専用・新規保存はしない）
+   - record.good_jobs[]    : good job（新形式）
+   - record.success_cases[]: 旧形式（読み取り専用・新規保存はしない）
 ================================================================ */
 
 const STORAGE_KEY = "er_reflection_v1";
@@ -1141,25 +1162,28 @@ let formState = {
 let editingId = null;
 // 削除確認中のID
 let deletingId = null;
-// 成功事例の連番（DOM要素のid生成用）
-let successCaseSeq = 0;
+// good jobの連番（DOM要素のid生成用）
+let goodJobSeq = 0;
 // 振り返りケースの連番
 let caseSeq = 0;
 // 統計のグラフモード（"bar" | "pie"）
 let statsChartMode = "bar";
+// 共有事項モーダルの既読化タイマー（モーダルを途中で閉じた時にキャンセルするため保持）
+let shareReadTimer = null;
+// 保存処理中フラグ（連打防止）
+let isSaving = false;
 
 // ------------ Helpers ------------
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+const pad2 = n => String(n).padStart(2, "0");
 const todayIso = () => {
   const d = new Date();
-  const z = n => String(n).padStart(2,"0");
-  return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
 };
 const nowTime = () => {
   const d = new Date();
-  const z = n => String(n).padStart(2,"0");
-  return `${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 };
 const loadAll = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
@@ -1175,6 +1199,42 @@ const toast = (msg) => {
   window.__toastTimer = setTimeout(() => t.dataset.show = "false", 2200);
 };
 
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function formatUpdatedAt(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}/${pad2(d.getMonth()+1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+// 振り返りケースの新旧形式を統一して取り出す
+function getCaseItems(rec) {
+  const c = (rec && rec.case) || {};
+  if (Array.isArray(c.items) && c.items.length > 0) return c.items;
+  if (c.type || c.case_id || c.content) {
+    return [{ type: c.type, case_id: c.case_id, content: c.content }];
+  }
+  return [];
+}
+
+// good jobの新旧形式を統一して取り出す
+function getGoodJobs(rec) {
+  if (!rec) return [];
+  if (Array.isArray(rec.good_jobs)) return rec.good_jobs;
+  if (Array.isArray(rec.success_cases)) {
+    return rec.success_cases.map(sc => ({ target: "", comment: sc.content || "" }));
+  }
+  return [];
+}
+
+function debounce(fn, wait) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
+}
+
 // ------------ Init ------------
 function init() {
   $("#f_date").value = todayIso();
@@ -1186,7 +1246,7 @@ function init() {
   setupSaveFlow();
   setupExport();
   setupNotification();
-  setupSuccessCases();
+  setupGoodJobs();
   setupCases();
   refreshReporterList();
   refreshNotificationBadge();
@@ -1195,56 +1255,66 @@ function init() {
   renderStats();
 }
 
-// ------------ Success Cases (本日の成功事例) ------------
-function setupSuccessCases() {
-  $("#addSuccessCaseBtn").addEventListener("click", () => addSuccessCase());
+// ------------ Good Jobs (本日の good job) ------------
+function setupGoodJobs() {
+  $("#addGoodJobBtn").addEventListener("click", () => addGoodJob());
 }
 
-function addSuccessCase(initial) {
-  const list = $("#successCases");
-  const seq = ++successCaseSeq;
+function addGoodJob(initial) {
+  const list = $("#goodJobs");
+  const seq = ++goodJobSeq;
   const wrap = document.createElement("div");
   wrap.className = "rounded-lg p-3 border border-[var(--line)] bg-[#fafbfc]";
-  wrap.dataset.successCase = String(seq);
-  const content = (initial && initial.content) || "";
+  wrap.dataset.goodJob = String(seq);
+  const target = (initial && initial.target) || "";
+  const comment = (initial && initial.comment) || "";
   wrap.innerHTML = `
     <div class="flex items-center justify-between mb-2">
-      <span class="text-[11px] font-bold text-[var(--navy-700)] num-tabular" data-success-num>事例 ${seq}</span>
-      <button type="button" class="text-[var(--muted)] p-1 -m-1" data-success-remove>
+      <span class="text-[11px] font-bold text-[var(--navy-700)] num-tabular" data-goodjob-num>good job ${seq}</span>
+      <button type="button" class="text-[var(--muted)] p-1 -m-1" data-goodjob-remove>
         <svg viewBox="0 0 24 24" width="16" height="16" class="ico"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
       </button>
     </div>
-    <textarea class="fld" data-success-content placeholder="例：心電図変化に気づけた、経過3人持ちを問題なく対応できた など">${escapeHtml(content)}</textarea>
+    <div class="space-y-2">
+      <div>
+        <label class="lbl">対象者</label>
+        <input type="text" class="fld" data-goodjob-target list="reporterList" autocomplete="off" placeholder="名前を入力" value="${escapeHtml(target)}" />
+      </div>
+      <div>
+        <label class="lbl">コメント</label>
+        <textarea class="fld" data-goodjob-comment placeholder="良かった関わり・アセスメント・対応など">${escapeHtml(comment)}</textarea>
+      </div>
+    </div>
   `;
-  wrap.querySelector("[data-success-remove]").addEventListener("click", () => {
+  wrap.querySelector("[data-goodjob-remove]").addEventListener("click", () => {
     wrap.remove();
-    // 全件消えたらカウンタをリセット（次回追加時に「事例1」から始まる）
-    if ($$("#successCases [data-success-case]").length === 0) {
-      successCaseSeq = 0;
+    if ($$("#goodJobs [data-good-job]").length === 0) {
+      goodJobSeq = 0;
     } else {
-      renumberSuccessCases();
+      renumberGoodJobs();
     }
   });
   list.appendChild(wrap);
   return wrap;
 }
 
-function renumberSuccessCases() {
-  $$("#successCases [data-success-case]").forEach((el, i) => {
-    const numEl = el.querySelector("[data-success-num]");
-    if (numEl) numEl.textContent = `事例 ${i + 1}`;
+function renumberGoodJobs() {
+  $$("#goodJobs [data-good-job]").forEach((el, i) => {
+    const numEl = el.querySelector("[data-goodjob-num]");
+    if (numEl) numEl.textContent = `good job ${i + 1}`;
   });
 }
 
-function clearSuccessCases() {
-  $("#successCases").innerHTML = "";
-  successCaseSeq = 0;
+function clearGoodJobs() {
+  $("#goodJobs").innerHTML = "";
+  goodJobSeq = 0;
 }
 
-function readSuccessCases() {
-  return $$("#successCases [data-success-case]").map(el => ({
-    content: el.querySelector("[data-success-content]").value.trim(),
-  })).filter(c => c.content); // 空の枠は除外
+function readGoodJobs() {
+  return $$("#goodJobs [data-good-job]").map(el => ({
+    target: el.querySelector("[data-goodjob-target]").value.trim(),
+    comment: el.querySelector("[data-goodjob-comment]").value.trim(),
+  })).filter(g => g.target || g.comment); // 空の枠は除外
 }
 
 // ------------ Reflection Cases (振り返りケース：複数件) ------------
@@ -1290,7 +1360,6 @@ function addCase(initial) {
   `;
   wrap.querySelector("[data-case-remove]").addEventListener("click", () => {
     wrap.remove();
-    // 全件消えたらカウンタをリセット（次回追加時に「症例1」から始まる）
     if ($$("#caseItems [data-case-item]").length === 0) {
       caseSeq = 0;
     } else {
@@ -1321,16 +1390,22 @@ function readCases() {
   })).filter(c => c.type || c.case_id || c.content);
 }
 
-// 記録者名の予測候補（過去記録から生成）
+// 記録者名の予測候補（過去記録の記録者名 + good job対象者名から生成）
 function refreshReporterList() {
   const dl = $("#reporterList");
   if (!dl) return;
-  const names = [...new Set(
-    loadAll()
-      .map(r => (r.reporter || "").trim())
-      .filter(Boolean)
-  )].sort((a,b) => a.localeCompare(b, "ja"));
-  dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join("");
+  const all = loadAll();
+  const names = new Set();
+  all.forEach(r => {
+    const reporter = (r.reporter || "").trim();
+    if (reporter) names.add(reporter);
+    getGoodJobs(r).forEach(g => {
+      const t = (g.target || "").trim();
+      if (t) names.add(t);
+    });
+  });
+  const sorted = [...names].sort((a,b) => a.localeCompare(b, "ja"));
+  dl.innerHTML = sorted.map(n => `<option value="${escapeHtml(n)}"></option>`).join("");
 }
 
 // ------------ Notification (Share items) ------------
@@ -1340,14 +1415,12 @@ const loadReadIds = () => {
 };
 const saveReadIds = (set) => localStorage.setItem(READ_KEY, JSON.stringify([...set]));
 
-// 共有事項のある記録のみ抽出（新しい順）
 function getShareRecords() {
   return loadAll()
     .filter(r => r.share && r.share.trim())
     .sort((a,b) => b.saved_at_ms - a.saved_at_ms);
 }
 
-// 未読件数を計算してバッジを更新
 function refreshNotificationBadge() {
   const badge = $("#bellBadge");
   if (!badge) return;
@@ -1362,7 +1435,6 @@ function refreshNotificationBadge() {
   }
 }
 
-// 共有事項モーダルを開く（同時に表示された未読を全て既読化）
 function openShareModal() {
   const shareRecords = getShareRecords();
   const readIds = loadReadIds();
@@ -1394,8 +1466,13 @@ function openShareModal() {
 
   openModal("shareModal");
 
-  // 表示された全件を既読化（少し遅らせてアニメーションを見せる）
-  setTimeout(() => {
+  // モーダルが表示中の間だけ既読化タイマーを走らせる
+  // （途中で閉じられた場合は close 時にキャンセル）
+  if (shareReadTimer) clearTimeout(shareReadTimer);
+  shareReadTimer = setTimeout(() => {
+    shareReadTimer = null;
+    // タイマー発火時にまだ開いていることを確認
+    if ($("#shareModal").dataset.open !== "true") return;
     const newReadIds = loadReadIds();
     let changed = false;
     shareRecords.forEach(r => {
@@ -1416,17 +1493,25 @@ function setupNotification() {
 }
 
 // ------------ Segmented buttons ------------
+// セグメントボタンの選択状態を変更する統一ヘルパー。
+// ユーザー操作・プログラム的な復元のどちらからも呼べる。
+function selectSeg(field, val) {
+  const group = $(`[data-seg-field="${field}"]`);
+  if (!group) return;
+  $$(".seg-btn", group).forEach(b => {
+    b.dataset.selected = (b.dataset.val === val ? "true" : "false");
+  });
+  formState[field] = val;
+  handleConditionals(field, val);
+}
+
 function setupSegmented() {
   $$("[data-seg-field]").forEach(group => {
     const field = group.dataset.segField;
     group.addEventListener("click", (e) => {
       const btn = e.target.closest(".seg-btn");
       if (!btn) return;
-      const val = btn.dataset.val;
-      // toggle
-      $$(".seg-btn", group).forEach(b => b.dataset.selected = (b === btn ? "true" : "false"));
-      formState[field] = val;
-      handleConditionals(field, val);
+      selectSeg(field, btn.dataset.val);
     });
   });
 }
@@ -1470,7 +1555,11 @@ function setupSteppers() {
       const input = $("#" + btn.dataset.stp);
       const delta = parseInt(btn.dataset.delta, 10);
       const current = parseInt(input.value || "0", 10);
-      const next = Math.max(0, current + delta);
+      // 下限: data-min 属性 > input min属性 > 0 の優先順位
+      const dataMin = btn.dataset.min !== undefined ? parseInt(btn.dataset.min, 10) : null;
+      const inputMin = input.min !== "" ? parseInt(input.min, 10) : null;
+      const lower = dataMin !== null ? dataMin : (inputMin !== null ? inputMin : 0);
+      const next = Math.max(lower, current + delta);
       input.value = next;
     });
   });
@@ -1494,7 +1583,7 @@ function setupTabs() {
 
 // ------------ Filters ------------
 function setupFilters() {
-  // 折りたたみトグル
+  // 折りたたみトグル（履歴・統計の絞り込みパネル）
   $$('[data-filter-toggle]').forEach(btn => {
     btn.addEventListener('click', () => {
       const kind = btn.dataset.filterToggle;
@@ -1502,6 +1591,15 @@ function setupFilters() {
       panel.dataset.open = panel.dataset.open === "true" ? "false" : "true";
     });
   });
+
+  // ランキングパネルのトグル
+  const rankingToggle = $('[data-ranking-toggle]');
+  if (rankingToggle) {
+    rankingToggle.addEventListener('click', () => {
+      const panel = $('#rankingPanel');
+      panel.dataset.open = panel.dataset.open === "true" ? "false" : "true";
+    });
+  }
 
   // チップ押下の共通ハンドラ（単一選択 or 複数選択をdata-modeで分岐）
   $$(".chip-group").forEach(group => {
@@ -1550,7 +1648,7 @@ function updateFilterCountBadge(kind) {
   let count = 0;
   $$(`.chip-group[data-filter-kind="${kind}"]`).forEach(group => {
     const key = group.dataset.filterKey;
-    if (key === "days") return; // 期間は常に必ず1つ選ばれている前提でカウントしない
+    if (key === "days") return;
     const selected = $$('.chip[data-active="true"]', group);
     if (selected.length > 0) count++;
   });
@@ -1578,11 +1676,6 @@ function clearChipGroups(kind) {
   });
 }
 
-function debounce(fn, wait) {
-  let t;
-  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
-}
-
 // チップグループから選択値の配列を取り出す
 function getSelectedChipValues(kind, key) {
   const group = $(`.chip-group[data-filter-kind="${kind}"][data-filter-key="${key}"]`);
@@ -1599,15 +1692,12 @@ function setupSaveFlow() {
     if (!formState.shift) missing.push("勤務帯");
     if (!$("#f_reporter").value.trim()) missing.push("記録者名");
     if (!formState.break_secured) missing.push("休憩の確保");
-    // チームの状態：3項目とも必須
     if (!formState.team_collab) missing.push("チーム連携");
     if (!formState.external_collab) missing.push("他関連機関との連携");
     if (!formState.psych_safety) missing.push("心理的安全性");
-    // 患者・家族への関わり：3項目とも必須
     if (!formState.hospitality) missing.push("接遇面");
     if (!formState.wait_care) missing.push("待ち時間への配慮");
     if (!formState.anxiety_relief) missing.push("不安軽減");
-    // 振り返りケース：あり/なしは必須
     if (!formState.case_exists) missing.push("振り返りケース");
     if (missing.length) {
       toast(`未入力: ${missing.join(" / ")}`);
@@ -1617,32 +1707,43 @@ function setupSaveFlow() {
   });
 
   $("#confirmSaveBtn").addEventListener("click", () => {
-    const all = loadAll();
-    if (editingId) {
-      // 既存記録の更新
-      const idx = all.findIndex(r => r.id === editingId);
-      const record = buildRecord();
-      if (idx >= 0) {
-        // 元のID・初回保存日時は維持し、更新時刻を別途記録
-        record.id = all[idx].id;
-        record.created_at_ms = all[idx].created_at_ms || all[idx].saved_at_ms;
-        record.updated_at_ms = Date.now();
-        all[idx] = record;
+    if (isSaving) return; // 連打防止
+    isSaving = true;
+    const confirmBtn = $("#confirmSaveBtn");
+    confirmBtn.style.opacity = "0.6";
+    confirmBtn.style.pointerEvents = "none";
+
+    try {
+      const all = loadAll();
+      if (editingId) {
+        const idx = all.findIndex(r => r.id === editingId);
+        const record = buildRecord();
+        if (idx >= 0) {
+          record.id = all[idx].id;
+          record.created_at_ms = all[idx].created_at_ms || all[idx].saved_at_ms;
+          record.updated_at_ms = Date.now();
+          all[idx] = record;
+        } else {
+          all.push(record);
+        }
       } else {
-        // ID不一致の場合は新規扱い
+        const record = buildRecord();
+        record.created_at_ms = record.saved_at_ms;
         all.push(record);
       }
-    } else {
-      // 新規追加
-      const record = buildRecord();
-      record.created_at_ms = record.saved_at_ms;
-      all.push(record);
+      saveAll(all);
+      refreshReporterList();
+      refreshNotificationBadge();
+      closeModal("confirmModal");
+      openModal("postSaveModal");
+    } finally {
+      // モーダル切替後にロック解除
+      setTimeout(() => {
+        isSaving = false;
+        confirmBtn.style.opacity = "";
+        confirmBtn.style.pointerEvents = "";
+      }, 200);
     }
-    saveAll(all);
-    refreshReporterList();
-    refreshNotificationBadge();
-    closeModal("confirmModal");
-    openModal("postSaveModal");
   });
 
   $("#postCloseBtn").addEventListener("click", () => {
@@ -1711,11 +1812,13 @@ function buildRecord() {
       anxiety_relief: formState.anxiety_relief,
       comment: $("#f_patient_comment").value.trim(),
     },
+    // 振り返りケース：新形式（items[]）のみ書き込む。旧 case.{type, case_id, content} は読み取り互換のためのみ存在。
     case: {
       exists: formState.case_exists,
       items: formState.case_exists === "あり" ? readCases() : [],
     },
-    success_cases: readSuccessCases(),
+    // good job：新形式（good_jobs[]）のみ書き込む。旧 success_cases[] は読み取り互換のためのみ存在。
+    good_jobs: readGoodJobs(),
     share: $("#f_share").value.trim(),
   };
 }
@@ -1736,19 +1839,27 @@ function resetForm() {
   $("#f_patient_comment").value = "";
   $("#f_share").value = "";
   clearCases();
+  clearGoodJobs();
   $$("[data-note]").forEach(el => el.value = "");
   $$(".seg-btn").forEach(b => b.dataset.selected = "false");
   $("#break_detail").dataset.show = "false";
   $("#help_no_reason").dataset.show = "false";
   $("#case_detail").dataset.show = "false";
-  clearSuccessCases();
   editingId = null;
   updateSaveButtonLabel();
 }
 
 // ------------ Modal ------------
 function openModal(id) { $("#"+id).dataset.open = "true"; document.body.style.overflow="hidden"; }
-function closeModal(id) { $("#"+id).dataset.open = "false"; document.body.style.overflow=""; }
+function closeModal(id) {
+  $("#"+id).dataset.open = "false";
+  document.body.style.overflow="";
+  // 共有事項モーダルが閉じられたら既読化タイマーをキャンセル
+  if (id === "shareModal" && shareReadTimer) {
+    clearTimeout(shareReadTimer);
+    shareReadTimer = null;
+  }
+}
 
 // ------------ Edit Mode ------------
 function updateSaveButtonLabel() {
@@ -1758,7 +1869,6 @@ function updateSaveButtonLabel() {
   btn.innerHTML = editing
     ? `<svg viewBox="0 0 24 24" width="18" height="18" class="ico"><path d="M20 6 9 17l-5-5"/></svg>修正を保存`
     : `<svg viewBox="0 0 24 24" width="18" height="18" class="ico"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>振り返りを保存`;
-  // 編集中バナーの表示切替
   const banner = $("#editBanner");
   if (banner) banner.classList.toggle("hidden", !editing);
 }
@@ -1774,39 +1884,29 @@ function loadRecordToForm(rec) {
   $("#f_doctors").value = (rec.team && rec.team.doctors) || 0;
   $("#f_reporter").value = rec.reporter || "";
 
-  // セグメント値の復元ヘルパー
-  const setSeg = (field, val) => {
-    if (!val) return;
-    const group = $(`[data-seg-field="${field}"]`);
-    if (!group) return;
-    const btn = $(`.seg-btn[data-val="${val}"]`, group);
-    if (btn) {
-      $$(".seg-btn", group).forEach(b => b.dataset.selected = (b === btn ? "true" : "false"));
-      formState[field] = val;
-    }
-  };
-
   // 勤務帯
-  setSeg("shift", rec.shift);
+  if (rec.shift) selectSeg("shift", rec.shift);
 
   // 労働環境
-  setSeg("break_secured", rec.workload && rec.workload.break_secured);
-  if (rec.workload && rec.workload.break_secured === "確保できなかった") {
-    $("#break_detail").dataset.show = "true";
-    $("#f_short_min").value = rec.workload.short_min || 0;
-    $("#f_short_people").value = rec.workload.short_people || 1;
-    setSeg("help_requested", rec.workload.help_requested);
-    if (rec.workload.help_requested === "なし") {
-      $("#help_no_reason").dataset.show = "true";
-      $("#f_no_help_reason").value = rec.workload.no_help_reason || "";
+  if (rec.workload && rec.workload.break_secured) {
+    selectSeg("break_secured", rec.workload.break_secured);
+    if (rec.workload.break_secured === "確保できなかった") {
+      $("#f_short_min").value = rec.workload.short_min || 0;
+      $("#f_short_people").value = rec.workload.short_people || 1;
+      if (rec.workload.help_requested) {
+        selectSeg("help_requested", rec.workload.help_requested);
+        if (rec.workload.help_requested === "なし") {
+          $("#f_no_help_reason").value = rec.workload.no_help_reason || "";
+        }
+      }
     }
   }
 
   // チームの状態
   const t = rec.team_state || {};
-  setSeg("team_collab", t.team_collab);
-  setSeg("external_collab", t.external_collab);
-  setSeg("psych_safety", t.psych_safety);
+  if (t.team_collab) selectSeg("team_collab", t.team_collab);
+  if (t.external_collab) selectSeg("external_collab", t.external_collab);
+  if (t.psych_safety) selectSeg("psych_safety", t.psych_safety);
   $$('[data-note]').forEach(el => {
     const key = el.dataset.note;
     if (t[key] !== undefined) el.value = t[key] || "";
@@ -1814,29 +1914,31 @@ function loadRecordToForm(rec) {
 
   // 患者・家族への関わり
   const p = rec.patient_care || {};
-  setSeg("hospitality", p.hospitality);
-  setSeg("wait_care", p.wait_care);
-  setSeg("anxiety_relief", p.anxiety_relief);
+  if (p.hospitality) selectSeg("hospitality", p.hospitality);
+  if (p.wait_care) selectSeg("wait_care", p.wait_care);
+  if (p.anxiety_relief) selectSeg("anxiety_relief", p.anxiety_relief);
   $("#f_patient_comment").value = p.comment || "";
 
   // 振り返りケース
   const c = rec.case || {};
-  setSeg("case_exists", c.exists);
-  if (c.exists === "あり") {
-    $("#case_detail").dataset.show = "true";
-    const items = getCaseItems(rec);
-    if (items.length > 0) {
-      items.forEach(item => addCase(item));
-    } else {
-      // 内容なしでも空の枠を1つ表示
-      addCase();
+  if (c.exists) {
+    // selectSeg → handleConditionals が呼ばれて空の症例枠が1件追加される
+    selectSeg("case_exists", c.exists);
+    if (c.exists === "あり") {
+      // handleConditionalsで自動追加された空枠を一旦クリアしてから既存データで再展開
+      clearCases();
+      const items = getCaseItems(rec);
+      if (items.length > 0) {
+        items.forEach(item => addCase(item));
+      } else {
+        addCase();
+      }
     }
   }
 
-  // 成功事例
-  if (Array.isArray(rec.success_cases)) {
-    rec.success_cases.forEach(sc => addSuccessCase(sc));
-  }
+  // good job（新形式: good_jobs / 旧形式: success_cases も自動変換）
+  const goodJobsList = getGoodJobs(rec);
+  goodJobsList.forEach(g => addGoodJob(g));
 
   // 共有事項
   $("#f_share").value = rec.share || "";
@@ -1915,16 +2017,14 @@ function applyFilters(records, f) {
       if (!f.share.includes(label)) return false;
     }
     if (has(f.success_exists)) {
-      const successList = Array.isArray(r.success_cases) ? r.success_cases : [];
-      const label = successList.length > 0 ? "あり" : "なし";
+      const label = getGoodJobs(r).length > 0 ? "あり" : "なし";
       if (!f.success_exists.includes(label)) return false;
     }
     if (f.q) {
       const q = f.q.toLowerCase();
-      const successText = (Array.isArray(r.success_cases) ? r.success_cases : [])
-        .map(sc => sc.content || "")
+      const goodJobsText = getGoodJobs(r)
+        .map(g => `${g.target || ""} ${g.comment || ""}`)
         .join(" ");
-      // 振り返り症例：新形式・旧形式を統一して扱う
       const caseItems = getCaseItems(r);
       const caseText = caseItems
         .map(it => [it.type, it.case_id, it.content].filter(Boolean).join(" "))
@@ -1935,7 +2035,7 @@ function applyFilters(records, f) {
         r.patient_care.comment,
         caseText,
         r.workload.no_help_reason,
-        successText,
+        goodJobsText,
       ].filter(Boolean).join(" ").toLowerCase();
       if (!text.includes(q)) return false;
     }
@@ -1957,8 +2057,6 @@ function readFilters(kind) {
     q: searchEl ? searchEl.value.trim() : "",
   };
 }
-function readHistFilters() { return readFilters("hist"); }
-function readStatsFilters() { return readFilters("stats"); }
 
 function ratingColor(r) {
   return r === "良い" ? "var(--good)" : r === "普通" ? "var(--mid)" : r === "悪い" ? "var(--bad)" : "var(--line-strong)";
@@ -1968,12 +2066,252 @@ function ratingDot(r) {
   return `<span class="inline-block w-2 h-2 rounded-full" style="background:${c}"></span>`;
 }
 
+// ------------ Good Job 月間ランキング ------------
+// 現在の月（その月の1日 00:00 〜 月末 23:59:59）の good job のみを集計。
+// 月初に自動的にリセットされる（前月以前のデータはランキング対象外）。
+// 履歴タブの期間フィルター（過去7日/30日/90日/全期間）からは独立。
+function renderRanking(allRecords) {
+  const panel = $("#rankingPanel");
+  const body = $("#rankingBody");
+  const countBadge = $("#rankingCount");
+  if (!panel || !body) return;
+
+  // 現在の月の 1 日 00:00:00 〜 翌月 1 日 00:00:00 を境界に
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).getTime();
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0).getTime();
+
+  // 当月分のレコードに絞り込み
+  const monthRecords = allRecords.filter(r => {
+    const ts = r.saved_at_ms || 0;
+    return ts >= monthStart && ts < monthEnd;
+  });
+
+  // good jobを対象者ごとに集計
+  const tally = new Map();
+  monthRecords.forEach(r => {
+    getGoodJobs(r).forEach(g => {
+      const target = (g.target || "").trim();
+      if (!target) return;
+      if (!tally.has(target)) tally.set(target, { count: 0, comments: [] });
+      const entry = tally.get(target);
+      entry.count += 1;
+      entry.comments.push({
+        comment: g.comment || "",
+        date: r.date,
+        reporter: r.reporter || "",
+        saved_at_ms: r.saved_at_ms,
+      });
+    });
+  });
+
+  const ranking = [...tally.entries()]
+    .map(([target, data]) => ({ target, ...data }))
+    .sort((a, b) => b.count - a.count || a.target.localeCompare(b.target, "ja"));
+
+  if (ranking.length > 0) {
+    countBadge.textContent = ranking.length;
+    countBadge.classList.remove("hidden");
+  } else {
+    countBadge.classList.add("hidden");
+  }
+
+  // ヘッダーラベル：「2026年4月」のような形式
+  const monthLabel = `${now.getFullYear()}年${now.getMonth() + 1}月`;
+
+  // 月末までの残日数を表示（リセットまでの目安）
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft = lastDay - now.getDate();
+  const resetHint = daysLeft === 0
+    ? "本日が月末です（明日リセット）"
+    : `月末まで残り ${daysLeft} 日`;
+
+  if (ranking.length === 0) {
+    body.innerHTML = `
+      <div class="text-center py-6">
+        <div class="text-[12px] font-bold text-[var(--navy-700)] mb-1">${monthLabel}</div>
+        <div class="text-[11px] text-[var(--muted)]">今月のgood jobの記録はまだありません</div>
+        <div class="text-[10px] text-[var(--muted)] mt-2">${resetHint}</div>
+      </div>`;
+    return;
+  }
+
+  const medal = (rank) => {
+    if (rank === 1) return `<span class="text-[18px]" style="line-height:1">🥇</span>`;
+    if (rank === 2) return `<span class="text-[18px]" style="line-height:1">🥈</span>`;
+    if (rank === 3) return `<span class="text-[18px]" style="line-height:1">🥉</span>`;
+    return `<span class="num-tabular text-[12px] font-bold text-[var(--muted)] w-[18px] text-center inline-block">${rank}</span>`;
+  };
+
+  const topRanking = ranking.slice(0, 3);
+
+  body.innerHTML = `
+    <div class="flex items-center justify-between mb-2 px-1">
+      <div class="text-[12px] font-bold text-[var(--navy-700)]">${monthLabel}</div>
+      <div class="text-[10px] text-[var(--muted)]">${resetHint}</div>
+    </div>
+    <div class="text-[11px] text-[var(--muted)] mb-2 px-1">上位 ${topRanking.length}名${ranking.length > 3 ? `（全${ranking.length}名中）` : ""}</div>
+    <div class="space-y-2">
+      ${topRanking.map((r, i) => {
+        const rank = i + 1;
+        const recent = [...r.comments]
+          .sort((a, b) => (b.saved_at_ms || 0) - (a.saved_at_ms || 0))
+          .slice(0, 2);
+        return `
+          <div class="rounded-lg p-3" style="background:#ecfdf5;border:1px solid #d1fae5">
+            <div class="flex items-center gap-2 mb-1.5">
+              ${medal(rank)}
+              <span class="font-bold text-[14px] text-[var(--navy-900)]">${escapeHtml(r.target)}</span>
+              <span class="ml-auto text-[13px] font-bold num-tabular" style="color:var(--good)">${r.count}<span class="text-[10px] text-[var(--muted)] ml-1">pt</span></span>
+            </div>
+            ${recent.length > 0 ? `
+              <div class="space-y-1 mt-2 pl-1">
+                ${recent.map(c => `
+                  <div class="text-[11px] text-[var(--navy-800)] leading-relaxed">
+                    <span class="text-[var(--muted)] num-tabular">${c.date}</span>
+                    ${c.comment ? `<span class="text-[var(--muted)]"> / </span><span>${escapeHtml(c.comment)}</span>` : `<span class="text-[var(--muted)] italic"> / （コメントなし）</span>`}
+                  </div>
+                `).join("")}
+              </div>` : ""}
+          </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
+// ------------ History rendering: テンプレート分割 ------------
+
+function histShiftBadge(shift) {
+  return shift === "夜勤"
+    ? `<span class="badge badge-night">🌙 夜勤</span>`
+    : `<span class="badge badge-day">☀ 日勤</span>`;
+}
+
+function histRatingsBlock(r) {
+  const team = r.team_state, pat = r.patient_care;
+  return `
+    <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-3 pt-3 border-t border-[var(--line)]">
+      <div class="text-[11px] flex items-center gap-1.5">${ratingDot(team.team_collab)} チーム連携 <span class="ml-auto font-semibold text-[var(--navy-800)]">${team.team_collab || "—"}</span></div>
+      <div class="text-[11px] flex items-center gap-1.5">${ratingDot(team.external_collab)} 他機関連携 <span class="ml-auto font-semibold text-[var(--navy-800)]">${team.external_collab || "—"}</span></div>
+      <div class="text-[11px] flex items-center gap-1.5">${ratingDot(team.psych_safety)} 心理的安全 <span class="ml-auto font-semibold text-[var(--navy-800)]">${team.psych_safety || "—"}</span></div>
+      <div class="text-[11px] flex items-center gap-1.5">${ratingDot(pat.hospitality)} 接遇 <span class="ml-auto font-semibold text-[var(--navy-800)]">${pat.hospitality || "—"}</span></div>
+      <div class="text-[11px] flex items-center gap-1.5">${ratingDot(pat.wait_care)} 待ち配慮 <span class="ml-auto font-semibold text-[var(--navy-800)]">${pat.wait_care || "—"}</span></div>
+      <div class="text-[11px] flex items-center gap-1.5">${ratingDot(pat.anxiety_relief)} 不安軽減 <span class="ml-auto font-semibold text-[var(--navy-800)]">${pat.anxiety_relief || "—"}</span></div>
+    </div>`;
+}
+
+function histBreakBadBlock(r) {
+  if (r.workload.break_secured !== "確保できなかった") return "";
+  return `
+    <div class="mt-3 pt-3 border-t border-[var(--line)] text-[11px] text-[var(--muted)]">
+      不足 <span class="font-bold text-[var(--bad)] num-tabular">${r.workload.short_min}分</span> ／ ${r.workload.short_people}名
+      ${r.workload.help_requested ? ` ／ 応援要請: <span class="font-semibold text-[var(--navy-800)]">${r.workload.help_requested}</span>` : ""}
+    </div>`;
+}
+
+function caseTypeBadge(t) {
+  const map = {
+    "救急車": "background:#fee2e2;color:#991b1b",
+    "ウォークイン": "background:#dbeafe;color:#1e40af",
+    "その他": "background:#f3f4f6;color:#374151",
+  };
+  return `<span class="badge" style="${map[t] || map['その他']}">${t || "区分未設定"}</span>`;
+}
+
+function histCasesBlock(r) {
+  if (!r.case || r.case.exists !== "あり") return "";
+  const items = getCaseItems(r);
+  if (!items.length) return "";
+  return `
+    <div class="mt-3 pt-3 border-t border-[var(--line)]">
+      <div class="text-[11px] font-semibold text-[var(--navy-700)] mb-2">📋 振り返り症例（${items.length}件）</div>
+      <div class="space-y-2">
+        ${items.map((it, i) => `
+          <div class="rounded-lg p-3" style="background:var(--soft-info)">
+            <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span class="text-[11px] font-bold text-[var(--navy-700)] num-tabular">症例 ${i+1}</span>
+              ${caseTypeBadge(it.type)}
+              ${it.case_id ? `<span class="text-[11px] text-[var(--muted)]">ID: <span class="font-semibold text-[var(--navy-800)]">${escapeHtml(it.case_id)}</span></span>` : ""}
+            </div>
+            ${it.content ? `<div class="text-[12px] text-[var(--navy-800)] leading-relaxed whitespace-pre-wrap">${escapeHtml(it.content)}</div>` : `<div class="text-[11px] text-[var(--muted)] italic">（内容の記載なし）</div>`}
+          </div>
+        `).join("")}
+      </div>
+    </div>`;
+}
+
+function histGoodJobsBlock(r) {
+  const list = getGoodJobs(r);
+  if (!list.length) return "";
+  return `
+    <div class="mt-3 pt-3 border-t border-[var(--line)]">
+      <div class="text-[11px] font-semibold text-[var(--navy-700)] mb-2">✨ 本日の good job（${list.length}件）</div>
+      <div class="space-y-1.5">
+        ${list.map(gj => `
+          <div class="p-2.5 rounded-lg" style="background:#ecfdf5;border-left:3px solid var(--good)">
+            ${gj.target ? `<div class="text-[11px] font-bold text-[#065f46] mb-1">→ ${escapeHtml(gj.target)} さん</div>` : ""}
+            ${gj.comment ? `<div class="text-[12px] text-[var(--navy-800)] leading-relaxed whitespace-pre-wrap">${escapeHtml(gj.comment)}</div>` : ""}
+          </div>
+        `).join("")}
+      </div>
+    </div>`;
+}
+
+function histActionsBlock(r) {
+  return `
+    <div class="mt-3 pt-3 border-t border-[var(--line)] flex gap-2">
+      <button type="button" class="flex-1 btn-secondary text-[12px] py-2 flex items-center justify-center gap-1.5" data-action="edit" data-id="${r.id}">
+        <svg viewBox="0 0 24 24" width="13" height="13" class="ico"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        編集
+      </button>
+      <button type="button" class="btn-secondary text-[12px] py-2 px-3 flex items-center justify-center gap-1.5" data-action="delete" data-id="${r.id}" style="color:var(--bad);border-color:#fecaca">
+        <svg viewBox="0 0 24 24" width="13" height="13" class="ico"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        削除
+      </button>
+    </div>`;
+}
+
+function histCardHtml(r) {
+  const breakBad = r.workload.break_secured === "確保できなかった";
+  const hasCase = r.case && r.case.exists === "あり";
+  const pat = r.patient_care;
+  return `
+    <div class="hist-card">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div>
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            ${histShiftBadge(r.shift)}
+            ${breakBad ? `<span class="badge" style="background:#fef2f2;color:#b91c1c">休憩未確保</span>` : ""}
+            ${hasCase ? `<span class="badge" style="background:#eef4fb;color:#1b3a6b">📋 症例あり</span>` : ""}
+          </div>
+          <div class="font-display font-bold text-[15px] text-[var(--navy-900)] num-tabular">${r.date}</div>
+          <div class="text-[11px] text-[var(--muted)] num-tabular">保存 ${r.saved_time} ・ ${escapeHtml(r.reporter || "(記録者未入力)")}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-[10px] text-[var(--muted)]">Ns / Dr</div>
+          <div class="text-[14px] font-bold num-tabular text-[var(--navy-800)]">${r.team.nurses} / ${r.team.doctors}</div>
+        </div>
+      </div>
+      ${histRatingsBlock(r)}
+      ${histBreakBadBlock(r)}
+      ${pat.comment ? `<div class="mt-2 text-[11px] text-[var(--navy-700)] bg-[var(--soft-info)] p-2 rounded-md"><span class="font-semibold">患者家族コメント</span><br>${escapeHtml(pat.comment)}</div>` : ""}
+      ${histCasesBlock(r)}
+      ${histGoodJobsBlock(r)}
+      ${r.share ? `<div class="mt-2 text-[11px] text-[var(--navy-700)] bg-[var(--soft-info)] p-2 rounded-md"><span class="font-semibold">💬 共有事項</span><br>${escapeHtml(r.share)}</div>` : ""}
+      ${r.updated_at_ms ? `<div class="mt-2 text-[10px] text-[var(--muted)] italic">※ ${formatUpdatedAt(r.updated_at_ms)}に修正</div>` : ""}
+      ${histActionsBlock(r)}
+    </div>`;
+}
+
 function renderHistory() {
   const days = getActiveDays("#histFilter");
   const baseRecords = filterByDays(loadAll(), days);
-  const filters = readHistFilters();
+  const filters = readFilters("hist");
   const records = applyFilters(baseRecords, filters);
   const list = $("#histList");
+
+  // Good Job 月間ランキングを描画（履歴の期間フィルターからは独立、月初に自動リセット）
+  renderRanking(loadAll());
 
   const activeFilterCount = Object.entries(filters).filter(([k,v]) => Array.isArray(v) ? v.length > 0 : (v && v !== "")).length;
   const filterNote = activeFilterCount
@@ -1989,99 +2327,7 @@ function renderHistory() {
     return;
   }
 
-  const caseTypeBadge = (t) => {
-    const map = {
-      "救急車": "background:#fee2e2;color:#991b1b",
-      "ウォークイン": "background:#dbeafe;color:#1e40af",
-      "その他": "background:#f3f4f6;color:#374151",
-    };
-    return `<span class="badge" style="${map[t] || map['その他']}">${t || "区分未設定"}</span>`;
-  };
-
-  list.innerHTML = filterNote + records.map(r => {
-    const shiftBadge = r.shift === "夜勤"
-      ? `<span class="badge badge-night">🌙 夜勤</span>`
-      : `<span class="badge badge-day">☀ 日勤</span>`;
-    const breakBad = r.workload.break_secured === "確保できなかった";
-    const team = r.team_state;
-    const pat = r.patient_care;
-    const hasCase = r.case && r.case.exists === "あり";
-    return `
-      <div class="hist-card">
-        <div class="flex items-start justify-between gap-3 mb-2">
-          <div>
-            <div class="flex items-center gap-2 mb-1 flex-wrap">
-              ${shiftBadge}
-              ${breakBad ? `<span class="badge" style="background:#fef2f2;color:#b91c1c">休憩未確保</span>` : ""}
-              ${hasCase ? `<span class="badge" style="background:#eef4fb;color:#1b3a6b">📋 症例あり</span>` : ""}
-            </div>
-            <div class="font-display font-bold text-[15px] text-[var(--navy-900)] num-tabular">${r.date}</div>
-            <div class="text-[11px] text-[var(--muted)] num-tabular">保存 ${r.saved_time} ・ ${escapeHtml(r.reporter || "(記録者未入力)")}</div>
-          </div>
-          <div class="text-right">
-            <div class="text-[10px] text-[var(--muted)]">Ns / Dr</div>
-            <div class="text-[14px] font-bold num-tabular text-[var(--navy-800)]">${r.team.nurses} / ${r.team.doctors}</div>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-3 pt-3 border-t border-[var(--line)]">
-          <div class="text-[11px] flex items-center gap-1.5">${ratingDot(team.team_collab)} チーム連携 <span class="ml-auto font-semibold text-[var(--navy-800)]">${team.team_collab || "—"}</span></div>
-          <div class="text-[11px] flex items-center gap-1.5">${ratingDot(team.external_collab)} 他機関連携 <span class="ml-auto font-semibold text-[var(--navy-800)]">${team.external_collab || "—"}</span></div>
-          <div class="text-[11px] flex items-center gap-1.5">${ratingDot(team.psych_safety)} 心理的安全 <span class="ml-auto font-semibold text-[var(--navy-800)]">${team.psych_safety || "—"}</span></div>
-          <div class="text-[11px] flex items-center gap-1.5">${ratingDot(pat.hospitality)} 接遇 <span class="ml-auto font-semibold text-[var(--navy-800)]">${pat.hospitality || "—"}</span></div>
-          <div class="text-[11px] flex items-center gap-1.5">${ratingDot(pat.wait_care)} 待ち配慮 <span class="ml-auto font-semibold text-[var(--navy-800)]">${pat.wait_care || "—"}</span></div>
-          <div class="text-[11px] flex items-center gap-1.5">${ratingDot(pat.anxiety_relief)} 不安軽減 <span class="ml-auto font-semibold text-[var(--navy-800)]">${pat.anxiety_relief || "—"}</span></div>
-        </div>
-        ${breakBad ? `
-          <div class="mt-3 pt-3 border-t border-[var(--line)] text-[11px] text-[var(--muted)]">
-            不足 <span class="font-bold text-[var(--bad)] num-tabular">${r.workload.short_min}分</span> ／ ${r.workload.short_people}名
-            ${r.workload.help_requested ? ` ／ 応援要請: <span class="font-semibold text-[var(--navy-800)]">${r.workload.help_requested}</span>` : ""}
-          </div>` : ""}
-        ${pat.comment ? `<div class="mt-2 text-[11px] text-[var(--navy-700)] bg-[var(--soft-info)] p-2 rounded-md"><span class="font-semibold">患者家族コメント</span><br>${escapeHtml(pat.comment)}</div>` : ""}
-        ${hasCase ? (() => {
-          const items = getCaseItems(r);
-          if (!items.length) return "";
-          return `
-          <div class="mt-3 pt-3 border-t border-[var(--line)]">
-            <div class="text-[11px] font-semibold text-[var(--navy-700)] mb-2">📋 振り返り症例（${items.length}件）</div>
-            <div class="space-y-2">
-              ${items.map((it, i) => `
-                <div class="rounded-lg p-3" style="background:var(--soft-info)">
-                  <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span class="text-[11px] font-bold text-[var(--navy-700)] num-tabular">症例 ${i+1}</span>
-                    ${caseTypeBadge(it.type)}
-                    ${it.case_id ? `<span class="text-[11px] text-[var(--muted)]">ID: <span class="font-semibold text-[var(--navy-800)]">${escapeHtml(it.case_id)}</span></span>` : ""}
-                  </div>
-                  ${it.content ? `<div class="text-[12px] text-[var(--navy-800)] leading-relaxed whitespace-pre-wrap">${escapeHtml(it.content)}</div>` : `<div class="text-[11px] text-[var(--muted)] italic">（内容の記載なし）</div>`}
-                </div>
-              `).join("")}
-            </div>
-          </div>`;
-        })() : ""}
-        ${Array.isArray(r.success_cases) && r.success_cases.length ? `
-          <div class="mt-3 pt-3 border-t border-[var(--line)]">
-            <div class="text-[11px] font-semibold text-[var(--navy-700)] mb-2">✨ 本日の成功事例（${r.success_cases.length}件）</div>
-            <div class="space-y-1.5">
-              ${r.success_cases.map(sc => `
-                <div class="p-2.5 rounded-lg" style="background:#ecfdf5;border-left:3px solid var(--good)">
-                  ${sc.content ? `<div class="text-[12px] text-[var(--navy-800)] leading-relaxed whitespace-pre-wrap">${escapeHtml(sc.content)}</div>` : ""}
-                </div>
-              `).join("")}
-            </div>
-          </div>` : ""}
-        ${r.share ? `<div class="mt-2 text-[11px] text-[var(--navy-700)] bg-[var(--soft-info)] p-2 rounded-md"><span class="font-semibold">💬 共有事項</span><br>${escapeHtml(r.share)}</div>` : ""}
-        ${r.updated_at_ms ? `<div class="mt-2 text-[10px] text-[var(--muted)] italic">※ ${formatUpdatedAt(r.updated_at_ms)}に修正</div>` : ""}
-        <div class="mt-3 pt-3 border-t border-[var(--line)] flex gap-2">
-          <button type="button" class="flex-1 btn-secondary text-[12px] py-2 flex items-center justify-center gap-1.5" data-action="edit" data-id="${r.id}">
-            <svg viewBox="0 0 24 24" width="13" height="13" class="ico"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-            編集
-          </button>
-          <button type="button" class="btn-secondary text-[12px] py-2 px-3 flex items-center justify-center gap-1.5" data-action="delete" data-id="${r.id}" style="color:var(--bad);border-color:#fecaca">
-            <svg viewBox="0 0 24 24" width="13" height="13" class="ico"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            削除
-          </button>
-        </div>
-      </div>`;
-  }).join("");
+  list.innerHTML = filterNote + records.map(histCardHtml).join("");
 
   // 編集・削除ボタンのイベント委譲
   $("#histList").querySelectorAll('[data-action]').forEach(btn => {
@@ -2095,29 +2341,6 @@ function renderHistory() {
   });
 }
 
-function formatUpdatedAt(ms) {
-  const d = new Date(ms);
-  const z = n => String(n).padStart(2,"0");
-  return `${d.getFullYear()}/${z(d.getMonth()+1)}/${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
-  }[c]));
-}
-
-// 振り返りケースの新旧形式を統一して取り出す
-// 新形式: case.items[] / 旧形式: case.{type, case_id, content}
-function getCaseItems(rec) {
-  const c = (rec && rec.case) || {};
-  if (Array.isArray(c.items) && c.items.length > 0) return c.items;
-  if (c.type || c.case_id || c.content) {
-    return [{ type: c.type, case_id: c.case_id, content: c.content }];
-  }
-  return [];
-}
-
 // ------------ Stats ------------
 function rateToNum(r) {
   return r === "良い" ? 3 : r === "普通" ? 2 : r === "悪い" ? 1 : null;
@@ -2129,7 +2352,7 @@ function avg(arr) {
 
 function renderStats() {
   const days = getActiveDays("#statsFilter");
-  const filters = readStatsFilters();
+  const filters = readFilters("stats");
   const baseRecords = filterByDays(loadAll(), days);
   const records = applyFilters(baseRecords, filters);
   const el = $("#statsContent");
@@ -2158,7 +2381,6 @@ function renderStats() {
     { key: "wait_care", label: "待ち時間への配慮", group: "patient_care" },
     { key: "anxiety_relief", label: "不安軽減", group: "patient_care" },
   ];
-  // 分布カウントヘルパー
   const distOf = (m) => {
     const vals = records.map(r => r[m.group][m.key]);
     return {
@@ -2180,9 +2402,6 @@ function renderStats() {
   const breakMissCount = records.filter(r => r.workload.break_secured === "確保できなかった").length;
   const breakSecuredRate = records.length ? (breakSecuredCount / records.length) * 100 : 0;
   const breakMissRate = records.length ? (breakMissCount / records.length) * 100 : 0;
-  const totalShortMin = records.reduce((s, r) => s + (r.workload.short_min || 0), 0);
-  const totalShortPeople = records.reduce((s, r) => s + (r.workload.short_people || 0), 0);
-  // 応援要請の内訳（未確保時のみ）
   const helpYesCount = records.filter(r => r.workload.break_secured === "確保できなかった" && r.workload.help_requested === "あり").length;
   const helpNoCount = records.filter(r => r.workload.break_secured === "確保できなかった" && r.workload.help_requested === "なし").length;
 
@@ -2222,7 +2441,6 @@ function renderStats() {
 
     let paths = "";
     if (segs.length === 1) {
-      // 1色のみ：円全体を塗る
       paths = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${segs[0].color}"/>`;
     } else {
       segs.forEach(seg => {
@@ -2237,7 +2455,6 @@ function renderStats() {
         angle = endAngle;
       });
     }
-    // 中央に合計件数
     const innerR = 22;
     const centerCircle = `<circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#fff"/>`;
     const centerText = `<text x="${cx}" y="${cy-1}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--navy-800)" font-family="'Zen Kaku Gothic New',sans-serif">${total}</text><text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="7" fill="var(--muted)">件</text>`;
@@ -2277,41 +2494,35 @@ function renderStats() {
   let html = "";
 
   // サマリー
-  {
-    html += `
-      <div class="grid grid-cols-3 gap-3 mb-4">
-        <div class="stat-tile">
-          <div class="stat-label">記録数</div>
-          <div class="stat-value num-tabular">${records.length}<span class="stat-unit">件</span></div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-label">休憩確保率</div>
-          <div class="stat-value num-tabular" style="color: ${breakSecuredRate >= 75 ? 'var(--good)' : breakSecuredRate >= 50 ? 'var(--mid)' : 'var(--bad)'}">${breakSecuredRate.toFixed(0)}<span class="stat-unit">%</span></div>
-        </div>
-        <div class="stat-tile">
-          <div class="stat-label">休憩未確保</div>
-          <div class="stat-value num-tabular" style="color: ${breakMissCount > 0 ? 'var(--bad)' : 'var(--muted)'}">${breakMissCount}<span class="stat-unit">件</span></div>
-        </div>
-      </div>`;
-  }
+  html += `
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <div class="stat-tile">
+        <div class="stat-label">記録数</div>
+        <div class="stat-value num-tabular">${records.length}<span class="stat-unit">件</span></div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">休憩確保率</div>
+        <div class="stat-value num-tabular" style="color: ${breakSecuredRate >= 75 ? 'var(--good)' : breakSecuredRate >= 50 ? 'var(--mid)' : 'var(--bad)'}">${breakSecuredRate.toFixed(0)}<span class="stat-unit">%</span></div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-label">休憩未確保</div>
+        <div class="stat-value num-tabular" style="color: ${breakMissCount > 0 ? 'var(--bad)' : 'var(--muted)'}">${breakMissCount}<span class="stat-unit">件</span></div>
+      </div>
+    </div>`;
 
   // 休憩や時間外 ― 未確保時の状況を可視化
   {
     const securedPct = breakSecuredRate;
     const missPct = breakMissRate;
-
-    // 未確保時のみを抽出
     const missRecords = records.filter(r => r.workload.break_secured === "確保できなかった");
     const avgShortMin = missRecords.length ? (missRecords.reduce((s, r) => s + (r.workload.short_min || 0), 0) / missRecords.length) : 0;
     const avgShortPeople = missRecords.length ? (missRecords.reduce((s, r) => s + (r.workload.short_people || 0), 0) / missRecords.length) : 0;
 
-    // 不足時間の分布
     const bucket10_30 = missRecords.filter(r => r.workload.short_min > 0 && r.workload.short_min <= 30).length;
     const bucket30_60 = missRecords.filter(r => r.workload.short_min > 30 && r.workload.short_min <= 60).length;
     const bucket60plus = missRecords.filter(r => r.workload.short_min > 60).length;
     const maxBucket = Math.max(bucket10_30, bucket30_60, bucket60plus, 1);
 
-    // 未確保記録ピックアップ（直近5件）
     const recentMiss = [...missRecords].sort((a,b) => b.saved_at_ms - a.saved_at_ms).slice(0, 5);
 
     html += `
@@ -2435,10 +2646,7 @@ function renderStats() {
       </div>
     </div>`;
 
-  // チームの状態
   html += metricBlock("チームの状態", statsIcon, teamAvgs);
-
-  // 患者家族
   html += metricBlock("患者家族への関わり", statsIcon, patientAvgs);
 
   el.innerHTML = filterNote + html;
@@ -2470,6 +2678,13 @@ function setupExport() {
     updatePinDots(v);
     $("#pinError").classList.add("hidden");
   });
+  // Enter キーで確定（デスクトップ向け）
+  $("#pinInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      $("#pinConfirmBtn").click();
+    }
+  });
   $("#pinConfirmBtn").addEventListener("click", () => {
     const v = $("#pinInput").value;
     if (v === PIN_CODE) {
@@ -2499,16 +2714,14 @@ function doExport() {
     "チーム連携","チーム連携_場面","他機関連携","他機関連携_場面","心理的安全性","心理的安全性_場面",
     "接遇","待ち時間配慮","不安軽減","患者家族コメント",
     "ケース有無","ケース件数","搬送区分（｜区切り）","ケースID（｜区切り）","ケース内容（｜｜区切り）",
-    "成功事例数","成功事例（｜｜区切り）",
+    "good job数","good job対象者（｜区切り）","good jobコメント（｜｜区切り）",
     "共有事項","修正日時"
   ];
-  // 保存順（古い→新しい）で並べ替えてから出力。ID列は1始まりの連番
   const sortedRecords = [...records].sort((a, b) => (a.saved_at_ms || 0) - (b.saved_at_ms || 0));
   const rows = sortedRecords.map((r, idx) => {
-    // 成功事例
-    const successList = Array.isArray(r.success_cases) ? r.success_cases : [];
-    const successText = successList.map(sc => (sc.content || "").replace(/\n/g, " ")).join("｜｜");
-    // 振り返りケース：新形式・旧形式を統一して扱う
+    const gjList = getGoodJobs(r);
+    const gjTargets = gjList.map(g => g.target || "").join("｜");
+    const gjComments = gjList.map(g => (g.comment || "").replace(/\n/g, " ")).join("｜｜");
     const caseItems = getCaseItems(r);
     const caseTypes = caseItems.map(it => it.type || "").join("｜");
     const caseIds = caseItems.map(it => it.case_id || "").join("｜");
@@ -2523,7 +2736,7 @@ function doExport() {
       r.team_state.psych_safety || "", r.team_state.psych_safety_note || "",
       r.patient_care.hospitality || "", r.patient_care.wait_care || "", r.patient_care.anxiety_relief || "", r.patient_care.comment || "",
       r.case.exists || "", caseItems.length, caseTypes, caseIds, caseContents,
-      successList.length, successText,
+      gjList.length, gjTargets, gjComments,
       r.share || "",
       r.updated_at_ms ? formatUpdatedAt(r.updated_at_ms) : ""
     ];
@@ -2535,14 +2748,12 @@ function doExport() {
     }).join(",")
   ).join("\r\n");
 
-  // BOM for Excel JP
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   const d = new Date();
-  const z = n => String(n).padStart(2,"0");
   a.href = url;
-  a.download = `ER_reflection_${d.getFullYear()}${z(d.getMonth()+1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}.csv`;
+  a.download = `ER_reflection_${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}_${pad2(d.getHours())}${pad2(d.getMinutes())}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
