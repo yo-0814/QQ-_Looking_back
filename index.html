@@ -37,6 +37,8 @@
     --soft-info: #eef4fb;
     --soft-alert: #fef2f2;
   }
+  /* Tailwind CDN ブロック時のフォールバック */
+  .hidden { display: none !important; }
   html, body {
     font-family: 'Noto Sans JP', system-ui, sans-serif;
     background: var(--paper);
@@ -700,7 +702,7 @@
           <textarea class="fld mt-2" data-note="team_collab_note" placeholder="具体的な場面（任意）"></textarea>
         </div>
         <div data-rate-group="external_collab">
-          <label class="lbl">② 他関連機関との連携（他部署、他施設、消防など）</label>
+          <label class="lbl">② 他関連機関との連携(他部署、他施設、消防など）</label>
           <div class="seg seg-3" data-seg-field="external_collab">
             <button class="seg-btn" data-val="良い">良い</button>
             <button class="seg-btn" data-val="普通">普通</button>
@@ -1158,19 +1160,12 @@ let formState = {
   team_collab: null, external_collab: null, psych_safety: null,
   hospitality: null, wait_care: null, anxiety_relief: null,
 };
-// 編集中の記録ID（新規入力時はnull、編集中はそのID）
 let editingId = null;
-// 削除確認中のID
 let deletingId = null;
-// good jobの連番（DOM要素のid生成用）
 let goodJobSeq = 0;
-// 振り返りケースの連番
 let caseSeq = 0;
-// 統計のグラフモード（"bar" | "pie"）
 let statsChartMode = "bar";
-// 共有事項モーダルの既読化タイマー（モーダルを途中で閉じた時にキャンセルするため保持）
 let shareReadTimer = null;
-// 保存処理中フラグ（連打防止）
 let isSaving = false;
 
 // ------------ Helpers ------------
@@ -1210,7 +1205,6 @@ function formatUpdatedAt(ms) {
   return `${d.getFullYear()}/${pad2(d.getMonth()+1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-// 振り返りケースの新旧形式を統一して取り出す
 function getCaseItems(rec) {
   const c = (rec && rec.case) || {};
   if (Array.isArray(c.items) && c.items.length > 0) return c.items;
@@ -1220,7 +1214,6 @@ function getCaseItems(rec) {
   return [];
 }
 
-// good jobの新旧形式を統一して取り出す
 function getGoodJobs(rec) {
   if (!rec) return [];
   if (Array.isArray(rec.good_jobs)) return rec.good_jobs;
@@ -1235,7 +1228,6 @@ function debounce(fn, wait) {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
 }
 
-// ------------ Init ------------
 function init() {
   $("#f_date").value = todayIso();
 
@@ -1255,7 +1247,6 @@ function init() {
   renderStats();
 }
 
-// ------------ Good Jobs (本日の good job) ------------
 function setupGoodJobs() {
   $("#addGoodJobBtn").addEventListener("click", () => addGoodJob());
 }
@@ -1314,10 +1305,9 @@ function readGoodJobs() {
   return $$("#goodJobs [data-good-job]").map(el => ({
     target: el.querySelector("[data-goodjob-target]").value.trim(),
     comment: el.querySelector("[data-goodjob-comment]").value.trim(),
-  })).filter(g => g.target || g.comment); // 空の枠は除外
+  })).filter(g => g.target || g.comment);
 }
 
-// ------------ Reflection Cases (振り返りケース：複数件) ------------
 function setupCases() {
   $("#addCaseBtn").addEventListener("click", () => addCase());
 }
@@ -1390,7 +1380,6 @@ function readCases() {
   })).filter(c => c.type || c.case_id || c.content);
 }
 
-// 記録者名の予測候補（過去記録の記録者名 + good job対象者名から生成）
 function refreshReporterList() {
   const dl = $("#reporterList");
   if (!dl) return;
@@ -1408,7 +1397,6 @@ function refreshReporterList() {
   dl.innerHTML = sorted.map(n => `<option value="${escapeHtml(n)}"></option>`).join("");
 }
 
-// ------------ Notification (Share items) ------------
 const loadReadIds = () => {
   try { return new Set(JSON.parse(localStorage.getItem(READ_KEY) || "[]")); }
   catch { return new Set(); }
@@ -1466,12 +1454,9 @@ function openShareModal() {
 
   openModal("shareModal");
 
-  // モーダルが表示中の間だけ既読化タイマーを走らせる
-  // （途中で閉じられた場合は close 時にキャンセル）
   if (shareReadTimer) clearTimeout(shareReadTimer);
   shareReadTimer = setTimeout(() => {
     shareReadTimer = null;
-    // タイマー発火時にまだ開いていることを確認
     if ($("#shareModal").dataset.open !== "true") return;
     const newReadIds = loadReadIds();
     let changed = false;
@@ -1492,9 +1477,6 @@ function setupNotification() {
   $("#bellBtn").addEventListener("click", openShareModal);
 }
 
-// ------------ Segmented buttons ------------
-// セグメントボタンの選択状態を変更する統一ヘルパー。
-// ユーザー操作・プログラム的な復元のどちらからも呼べる。
 function selectSeg(field, val) {
   const group = $(`[data-seg-field="${field}"]`);
   if (!group) return;
@@ -1521,7 +1503,6 @@ function handleConditionals(field, val) {
     const box = $("#break_detail");
     box.dataset.show = (val === "確保できなかった") ? "true" : "false";
     if (val !== "確保できなかった") {
-      // reset nested
       formState.help_requested = null;
       $$('[data-seg-field="help_requested"] .seg-btn').forEach(b => b.dataset.selected = "false");
       $("#help_no_reason").dataset.show = "false";
@@ -1537,25 +1518,21 @@ function handleConditionals(field, val) {
   if (field === "case_exists") {
     $("#case_detail").dataset.show = (val === "あり") ? "true" : "false";
     if (val === "あり") {
-      // 「あり」初回選択時、まだ症例が1件もなければ自動で1件目を追加
       if ($$("#caseItems [data-case-item]").length === 0) {
         addCase();
       }
     } else {
-      // 「なし」の場合は全クリア
       clearCases();
     }
   }
 }
 
-// ------------ Number steppers ------------
 function setupSteppers() {
   $$("[data-stp]").forEach(btn => {
     btn.addEventListener("click", () => {
       const input = $("#" + btn.dataset.stp);
       const delta = parseInt(btn.dataset.delta, 10);
       const current = parseInt(input.value || "0", 10);
-      // 下限: data-min 属性 > input min属性 > 0 の優先順位
       const dataMin = btn.dataset.min !== undefined ? parseInt(btn.dataset.min, 10) : null;
       const inputMin = input.min !== "" ? parseInt(input.min, 10) : null;
       const lower = dataMin !== null ? dataMin : (inputMin !== null ? inputMin : 0);
@@ -1565,7 +1542,6 @@ function setupSteppers() {
   });
 }
 
-// ------------ Tabs ------------
 function setupTabs() {
   $$(".tab-btn").forEach(b => {
     b.addEventListener("click", () => {
@@ -1581,9 +1557,7 @@ function setupTabs() {
   });
 }
 
-// ------------ Filters ------------
 function setupFilters() {
-  // 折りたたみトグル（履歴・統計の絞り込みパネル）
   $$('[data-filter-toggle]').forEach(btn => {
     btn.addEventListener('click', () => {
       const kind = btn.dataset.filterToggle;
@@ -1592,7 +1566,6 @@ function setupFilters() {
     });
   });
 
-  // ランキングパネルのトグル
   const rankingToggle = $('[data-ranking-toggle]');
   if (rankingToggle) {
     rankingToggle.addEventListener('click', () => {
@@ -1601,7 +1574,6 @@ function setupFilters() {
     });
   }
 
-  // チップ押下の共通ハンドラ（単一選択 or 複数選択をdata-modeで分岐）
   $$(".chip-group").forEach(group => {
     group.addEventListener("click", (e) => {
       const btn = e.target.closest(".chip");
@@ -1618,11 +1590,9 @@ function setupFilters() {
     });
   });
 
-  // フリー検索（履歴・統計）
   $("#histFreeSearch").addEventListener("input", debounce(() => { updateFilterCountBadge("hist"); renderHistory(); }, 180));
   $("#statsFreeSearch").addEventListener("input", debounce(() => { updateFilterCountBadge("stats"); renderStats(); }, 180));
 
-  // リセットボタン
   $("#histClearBtn").addEventListener("click", () => {
     clearChipGroups("hist");
     $("#histFreeSearch").value = "";
@@ -1636,12 +1606,10 @@ function setupFilters() {
     renderStats();
   });
 
-  // 初期バッジ
   updateFilterCountBadge("hist");
   updateFilterCountBadge("stats");
 }
 
-// 絞り込み件数バッジ更新（期間チップは含めず、絞り込み項目とフリー検索のみカウント）
 function updateFilterCountBadge(kind) {
   const badge = $(`#${kind}FilterCount`);
   if (!badge) return;
@@ -1676,17 +1644,14 @@ function clearChipGroups(kind) {
   });
 }
 
-// チップグループから選択値の配列を取り出す
 function getSelectedChipValues(kind, key) {
   const group = $(`.chip-group[data-filter-kind="${kind}"][data-filter-key="${key}"]`);
   if (!group) return [];
   return $$('.chip[data-active="true"]', group).map(c => c.dataset.val).filter(Boolean);
 }
 
-// ------------ Save Flow ------------
 function setupSaveFlow() {
   $("#saveBtn").addEventListener("click", () => {
-    // Minimal validation
     const missing = [];
     if (!$("#f_date").value) missing.push("日付");
     if (!formState.shift) missing.push("勤務帯");
@@ -1707,7 +1672,7 @@ function setupSaveFlow() {
   });
 
   $("#confirmSaveBtn").addEventListener("click", () => {
-    if (isSaving) return; // 連打防止
+    if (isSaving) return;
     isSaving = true;
     const confirmBtn = $("#confirmSaveBtn");
     confirmBtn.style.opacity = "0.6";
@@ -1737,7 +1702,6 @@ function setupSaveFlow() {
       closeModal("confirmModal");
       openModal("postSaveModal");
     } finally {
-      // モーダル切替後にロック解除
       setTimeout(() => {
         isSaving = false;
         confirmBtn.style.opacity = "";
@@ -1757,10 +1721,8 @@ function setupSaveFlow() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
-  // 編集キャンセル
   $("#cancelEditBtn").addEventListener("click", cancelEdit);
 
-  // 削除確認
   $("#confirmDeleteBtn").addEventListener("click", () => {
     if (deletingId) {
       deleteRecord(deletingId);
@@ -1812,12 +1774,10 @@ function buildRecord() {
       anxiety_relief: formState.anxiety_relief,
       comment: $("#f_patient_comment").value.trim(),
     },
-    // 振り返りケース：新形式（items[]）のみ書き込む。旧 case.{type, case_id, content} は読み取り互換のためのみ存在。
     case: {
       exists: formState.case_exists,
       items: formState.case_exists === "あり" ? readCases() : [],
     },
-    // good job：新形式（good_jobs[]）のみ書き込む。旧 success_cases[] は読み取り互換のためのみ存在。
     good_jobs: readGoodJobs(),
     share: $("#f_share").value.trim(),
   };
@@ -1849,19 +1809,16 @@ function resetForm() {
   updateSaveButtonLabel();
 }
 
-// ------------ Modal ------------
 function openModal(id) { $("#"+id).dataset.open = "true"; document.body.style.overflow="hidden"; }
 function closeModal(id) {
   $("#"+id).dataset.open = "false";
   document.body.style.overflow="";
-  // 共有事項モーダルが閉じられたら既読化タイマーをキャンセル
   if (id === "shareModal" && shareReadTimer) {
     clearTimeout(shareReadTimer);
     shareReadTimer = null;
   }
 }
 
-// ------------ Edit Mode ------------
 function updateSaveButtonLabel() {
   const btn = $("#saveBtn");
   if (!btn) return;
@@ -1874,20 +1831,16 @@ function updateSaveButtonLabel() {
 }
 
 function loadRecordToForm(rec) {
-  // フォームを一度クリアしてから展開
   resetForm();
   editingId = rec.id;
 
-  // 基本情報
   $("#f_date").value = rec.date || todayIso();
   $("#f_nurses").value = (rec.team && rec.team.nurses) || 0;
   $("#f_doctors").value = (rec.team && rec.team.doctors) || 0;
   $("#f_reporter").value = rec.reporter || "";
 
-  // 勤務帯
   if (rec.shift) selectSeg("shift", rec.shift);
 
-  // 労働環境
   if (rec.workload && rec.workload.break_secured) {
     selectSeg("break_secured", rec.workload.break_secured);
     if (rec.workload.break_secured === "確保できなかった") {
@@ -1902,7 +1855,6 @@ function loadRecordToForm(rec) {
     }
   }
 
-  // チームの状態
   const t = rec.team_state || {};
   if (t.team_collab) selectSeg("team_collab", t.team_collab);
   if (t.external_collab) selectSeg("external_collab", t.external_collab);
@@ -1912,20 +1864,16 @@ function loadRecordToForm(rec) {
     if (t[key] !== undefined) el.value = t[key] || "";
   });
 
-  // 患者・家族への関わり
   const p = rec.patient_care || {};
   if (p.hospitality) selectSeg("hospitality", p.hospitality);
   if (p.wait_care) selectSeg("wait_care", p.wait_care);
   if (p.anxiety_relief) selectSeg("anxiety_relief", p.anxiety_relief);
   $("#f_patient_comment").value = p.comment || "";
 
-  // 振り返りケース
   const c = rec.case || {};
   if (c.exists) {
-    // selectSeg → handleConditionals が呼ばれて空の症例枠が1件追加される
     selectSeg("case_exists", c.exists);
     if (c.exists === "あり") {
-      // handleConditionalsで自動追加された空枠を一旦クリアしてから既存データで再展開
       clearCases();
       const items = getCaseItems(rec);
       if (items.length > 0) {
@@ -1936,11 +1884,9 @@ function loadRecordToForm(rec) {
     }
   }
 
-  // good job（新形式: good_jobs / 旧形式: success_cases も自動変換）
   const goodJobsList = getGoodJobs(rec);
   goodJobsList.forEach(g => addGoodJob(g));
 
-  // 共有事項
   $("#f_share").value = rec.share || "";
 
   updateSaveButtonLabel();
@@ -1953,7 +1899,6 @@ function startEditRecord(id) {
     return;
   }
   loadRecordToForm(rec);
-  // 入力タブに切り替え
   $$(".tab-btn").forEach(b => b.dataset.active = (b.dataset.tab === "input" ? "true" : "false"));
   $("#tab-input").classList.remove("hidden");
   $("#tab-history").classList.add("hidden");
@@ -1972,11 +1917,9 @@ function deleteRecord(id) {
   if (idx < 0) return;
   all.splice(idx, 1);
   saveAll(all);
-  // 既読リストからも掃除
   const read = loadReadIds();
   read.delete(id);
   saveReadIds(read);
-  // 編集中の対象が削除されたらフォームをリセット
   if (editingId === id) resetForm();
   refreshNotificationBadge();
   refreshReporterList();
@@ -1985,7 +1928,6 @@ function deleteRecord(id) {
   toast("削除しました");
 }
 
-// ------------ History ------------
 function getActiveDays(filterSel) {
   const a = $(`${filterSel} .chip[data-active="true"]`);
   return a ? parseInt(a.dataset.days, 10) : 7;
@@ -1997,7 +1939,6 @@ function filterByDays(records, days) {
     .sort((a,b) => b.saved_at_ms - a.saved_at_ms);
 }
 
-// 共通フィルタ適用（配列が渡された場合はOR条件、空配列は「絞り込みなし」）
 function applyFilters(records, f) {
   const has = arr => Array.isArray(arr) && arr.length > 0;
   return records.filter(r => {
@@ -2043,7 +1984,6 @@ function applyFilters(records, f) {
   });
 }
 
-// kind="hist"/"stats" 共通のフィルタ読み取り
 function readFilters(kind) {
   const searchEl = kind === "hist" ? $("#histFreeSearch") : $("#statsFreeSearch");
   return {
@@ -2066,28 +2006,21 @@ function ratingDot(r) {
   return `<span class="inline-block w-2 h-2 rounded-full" style="background:${c}"></span>`;
 }
 
-// ------------ Good Job 月間ランキング ------------
-// 現在の月（その月の1日 00:00 〜 月末 23:59:59）の good job のみを集計。
-// 月初に自動的にリセットされる（前月以前のデータはランキング対象外）。
-// 履歴タブの期間フィルター（過去7日/30日/90日/全期間）からは独立。
 function renderRanking(allRecords) {
   const panel = $("#rankingPanel");
   const body = $("#rankingBody");
   const countBadge = $("#rankingCount");
   if (!panel || !body) return;
 
-  // 現在の月の 1 日 00:00:00 〜 翌月 1 日 00:00:00 を境界に
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).getTime();
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0).getTime();
 
-  // 当月分のレコードに絞り込み
   const monthRecords = allRecords.filter(r => {
     const ts = r.saved_at_ms || 0;
     return ts >= monthStart && ts < monthEnd;
   });
 
-  // good jobを対象者ごとに集計
   const tally = new Map();
   monthRecords.forEach(r => {
     getGoodJobs(r).forEach(g => {
@@ -2116,10 +2049,8 @@ function renderRanking(allRecords) {
     countBadge.classList.add("hidden");
   }
 
-  // ヘッダーラベル：「2026年4月」のような形式
   const monthLabel = `${now.getFullYear()}年${now.getMonth() + 1}月`;
 
-  // 月末までの残日数を表示（リセットまでの目安）
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysLeft = lastDay - now.getDate();
   const resetHint = daysLeft === 0
@@ -2178,8 +2109,6 @@ function renderRanking(allRecords) {
     </div>
   `;
 }
-
-// ------------ History rendering: テンプレート分割 ------------
 
 function histShiftBadge(shift) {
   return shift === "夜勤"
@@ -2310,7 +2239,6 @@ function renderHistory() {
   const records = applyFilters(baseRecords, filters);
   const list = $("#histList");
 
-  // Good Job 月間ランキングを描画（履歴の期間フィルターからは独立、月初に自動リセット）
   renderRanking(loadAll());
 
   const activeFilterCount = Object.entries(filters).filter(([k,v]) => Array.isArray(v) ? v.length > 0 : (v && v !== "")).length;
@@ -2329,7 +2257,6 @@ function renderHistory() {
 
   list.innerHTML = filterNote + records.map(histCardHtml).join("");
 
-  // 編集・削除ボタンのイベント委譲
   $("#histList").querySelectorAll('[data-action]').forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -2341,7 +2268,6 @@ function renderHistory() {
   });
 }
 
-// ------------ Stats ------------
 function rateToNum(r) {
   return r === "良い" ? 3 : r === "普通" ? 2 : r === "悪い" ? 1 : null;
 }
@@ -2397,7 +2323,6 @@ function renderStats() {
   const teamAvgs = teamMetrics.map(addAvgAndDist);
   const patientAvgs = patientMetrics.map(addAvgAndDist);
 
-  // 休憩関連の集計
   const breakSecuredCount = records.filter(r => r.workload.break_secured === "確保できた").length;
   const breakMissCount = records.filter(r => r.workload.break_secured === "確保できなかった").length;
   const breakSecuredRate = records.length ? (breakSecuredCount / records.length) * 100 : 0;
@@ -2493,7 +2418,6 @@ function renderStats() {
 
   let html = "";
 
-  // サマリー
   html += `
     <div class="grid grid-cols-3 gap-3 mb-4">
       <div class="stat-tile">
@@ -2510,7 +2434,6 @@ function renderStats() {
       </div>
     </div>`;
 
-  // 休憩や時間外 ― 未確保時の状況を可視化
   {
     const securedPct = breakSecuredRate;
     const missPct = breakMissRate;
@@ -2631,7 +2554,6 @@ function renderStats() {
       </div>`;
   }
 
-  // グラフ切替ボタン
   html += `
     <div class="flex items-center justify-end mb-3">
       <div class="inline-flex rounded-lg overflow-hidden border border-[var(--line-strong)]" style="background:#fff">
@@ -2651,7 +2573,6 @@ function renderStats() {
 
   el.innerHTML = filterNote + html;
 
-  // グラフ切替ボタンのリスナ
   el.querySelectorAll('[data-chart-mode]').forEach(btn => {
     btn.addEventListener("click", () => {
       const mode = btn.dataset.chartMode;
@@ -2663,7 +2584,6 @@ function renderStats() {
   });
 }
 
-// ------------ Export / PIN ------------
 function setupExport() {
   $("#exportBtn").addEventListener("click", () => {
     $("#pinInput").value = "";
@@ -2678,7 +2598,6 @@ function setupExport() {
     updatePinDots(v);
     $("#pinError").classList.add("hidden");
   });
-  // Enter キーで確定（デスクトップ向け）
   $("#pinInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -2761,7 +2680,6 @@ function doExport() {
   toast("CSVをダウンロードしました");
 }
 
-// ------------ Go ------------
 document.addEventListener("DOMContentLoaded", init);
 </script>
 </body>
