@@ -1651,7 +1651,8 @@ async function flushSyncQueue() {
   return { flushed, failed };
 }
 
-// 管理者モード時：GAS から全レコードを取得して localStorage にマージ
+// 管理者モード時：GAS から全レコードを取得して localStorage を GAS の内容で上書き
+// （GAS を「正」として扱うが、未送信キューにあるレコードは保護する）
 async function pullFromGas() {
   if (getRole() !== "admin") return { skipped: true };
   if (!isOnline()) return { error: "offline" };
@@ -1664,29 +1665,60 @@ async function pullFromGas() {
   catch { throw new Error("invalid_response: " + text.slice(0, 100)); }
   if (!data.ok) throw new Error(data.error || "unknown_error");
 
-  // ローカルとマージ：saved_at_ms / updated_at_ms の新しいほうを優先
   const remote = data.records || [];
   const local = loadAll();
-  const map = new Map();
-  // ローカル先入れ
-  local.forEach(r => map.set(r.id, r));
-  // リモートで上書き or 追加（タイムスタンプ比較）
-  remote.forEach(r => {
-    const existing = map.get(r.id);
-    if (!existing) {
-      map.set(r.id, r);
-    } else {
-      const localTs = existing.updated_at_ms || existing.saved_at_ms || 0;
-      const remoteTs = r.updated_at_ms || r.saved_at_ms || 0;
-      if (remoteTs >= localTs) {
-        map.set(r.id, r);
-      }
+
+  // 未送信キューに入っているIDは「まだGASに反映されていない」ので保護対象
+  const queue = loadSyncQueue();
+  const protectedIds = new Set();
+  queue.forEach(item => {
+    if (item.action === "save" && item.payload && item.payload.id) {
+      protectedIds.add(item.payload.id);
     }
   });
+
+  // GAS の内容を基本にして、保護対象のローカルレコードのみ追加
+  const map = new Map();
+  remote.forEach(r => {
+    if (r && r.id) map.set(r.id, r);
+  });
+  // 保護対象（未送信のローカルレコード）を追加 or タイムスタンプ比較で残す
+  local.forEach(r => {
+    if (!r || !r.id) return;
+    if (protectedIds.has(r.id)) {
+      // 未送信のローカル記録はリモートに無くても残す
+      // リモートにもあるならタイムスタンプで新しい方を採用
+      const remoteRec = map.get(r.id);
+      if (!remoteRec) {
+        map.set(r.id, r);
+      } else {
+        const localTs = r.updated_at_ms || r.saved_at_ms || 0;
+        const remoteTs = remoteRec.updated_at_ms || remoteRec.saved_at_ms || 0;
+        if (localTs >= remoteTs) map.set(r.id, r);
+      }
+    }
+    // 保護対象でないローカル記録はリモートに無ければ削除（map に追加しない）
+  });
+
   const merged = [...map.values()];
   saveAll(merged);
   localStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
-  return { count: merged.length, remote: remote.length };
+
+  // 既読ID もクリーンアップ（既に存在しないIDを削除）
+  const validIds = new Set(merged.map(r => r.id));
+  const readIds = loadReadIds();
+  let readChanged = false;
+  [...readIds].forEach(id => {
+    if (!validIds.has(id)) { readIds.delete(id); readChanged = true; }
+  });
+  if (readChanged) saveReadIds(readIds);
+
+  return {
+    count: merged.length,
+    remote: remote.length,
+    localOnly: protectedIds.size,
+    deletedLocal: local.length - merged.length + protectedIds.size,
+  };
 }
 
 // 同期状態のバッジ更新
