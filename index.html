@@ -1209,7 +1209,7 @@ function getCaseItems(rec) {
   const c = (rec && rec.case) || {};
   if (Array.isArray(c.items) && c.items.length > 0) return c.items;
   if (c.type || c.case_id || c.content) {
-    return [{ type: c.type, case_id: c.case_id, content: c.content }];
+    return [{ type: c.type, case_id: c.case_id, age: "", gender: "", chief_complaint: "", content: c.content }];
   }
   return [];
 }
@@ -1319,7 +1319,9 @@ function addCase(initial) {
   wrap.className = "rounded-lg p-3 border border-[var(--line)] bg-[#fafbfc]";
   wrap.dataset.caseItem = String(seq);
   const type = (initial && initial.type) || "";
-  const caseId = (initial && initial.case_id) || "";
+  const age = (initial && initial.age) || "";
+  const gender = (initial && initial.gender) || "";
+  const chief = (initial && initial.chief_complaint) || "";
   const content = (initial && initial.content) || "";
   wrap.innerHTML = `
     <div class="flex items-center justify-between mb-2">
@@ -1338,13 +1340,28 @@ function addCase(initial) {
           <option value="その他" ${type === "その他" ? "selected" : ""}>その他</option>
         </select>
       </div>
-      <div>
-        <label class="lbl">ID</label>
-        <input type="text" class="fld" data-case-id placeholder="例：12345678" value="${escapeHtml(caseId)}" />
+      <div class="grid grid-cols-3 gap-2">
+        <div>
+          <label class="lbl">年齢</label>
+          <input type="text" class="fld" data-case-age inputmode="numeric" placeholder="例：72" value="${escapeHtml(age)}" />
+        </div>
+        <div>
+          <label class="lbl">性別</label>
+          <select class="fld" data-case-gender>
+            <option value="">—</option>
+            <option value="男性" ${gender === "男性" ? "selected" : ""}>男性</option>
+            <option value="女性" ${gender === "女性" ? "selected" : ""}>女性</option>
+            <option value="その他" ${gender === "その他" ? "selected" : ""}>その他</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">主訴</label>
+          <input type="text" class="fld" data-case-chief placeholder="例：胸痛" value="${escapeHtml(chief)}" />
+        </div>
       </div>
       <div>
         <label class="lbl">内容</label>
-        <textarea class="fld" data-case-content placeholder="主訴・経過・学びなど">${escapeHtml(content)}</textarea>
+        <textarea class="fld" data-case-content placeholder="経過・学びなど">${escapeHtml(content)}</textarea>
       </div>
     </div>
   `;
@@ -1375,9 +1392,11 @@ function clearCases() {
 function readCases() {
   return $$("#caseItems [data-case-item]").map(el => ({
     type: el.querySelector("[data-case-type]").value,
-    case_id: el.querySelector("[data-case-id]").value.trim(),
+    age: el.querySelector("[data-case-age]").value.trim(),
+    gender: el.querySelector("[data-case-gender]").value,
+    chief_complaint: el.querySelector("[data-case-chief]").value.trim(),
     content: el.querySelector("[data-case-content]").value.trim(),
-  })).filter(c => c.type || c.case_id || c.content);
+  })).filter(c => c.type || c.age || c.gender || c.chief_complaint || c.content);
 }
 
 function refreshReporterList() {
@@ -1968,7 +1987,7 @@ function applyFilters(records, f) {
         .join(" ");
       const caseItems = getCaseItems(r);
       const caseText = caseItems
-        .map(it => [it.type, it.case_id, it.content].filter(Boolean).join(" "))
+        .map(it => [it.type, it.case_id, it.age, it.gender, it.chief_complaint, it.content].filter(Boolean).join(" "))
         .join(" ");
       const text = [
         r.reporter, r.share,
@@ -2151,20 +2170,29 @@ function histCasesBlock(r) {
   if (!r.case || r.case.exists !== "あり") return "";
   const items = getCaseItems(r);
   if (!items.length) return "";
+  const demo = (it) => {
+    const parts = [];
+    if (it.age) parts.push(`${escapeHtml(it.age)}歳`);
+    if (it.gender) parts.push(escapeHtml(it.gender));
+    return parts.join(" ");
+  };
   return `
     <div class="mt-3 pt-3 border-t border-[var(--line)]">
-      <div class="text-[11px] font-semibold text-[var(--navy-700)] mb-2">📋 振り返り症例（${items.length}件）</div>
+      <div class="text-[11px] font-semibold text-[var(--navy-700)] mb-2">📋 振り返り症例(${items.length}件）</div>
       <div class="space-y-2">
-        ${items.map((it, i) => `
+        ${items.map((it, i) => {
+          const demoStr = demo(it);
+          return `
           <div class="rounded-lg p-3" style="background:var(--soft-info)">
             <div class="flex items-center gap-2 mb-1.5 flex-wrap">
               <span class="text-[11px] font-bold text-[var(--navy-700)] num-tabular">症例 ${i+1}</span>
               ${caseTypeBadge(it.type)}
-              ${it.case_id ? `<span class="text-[11px] text-[var(--muted)]">ID: <span class="font-semibold text-[var(--navy-800)]">${escapeHtml(it.case_id)}</span></span>` : ""}
+              ${demoStr ? `<span class="text-[11px] font-semibold text-[var(--navy-800)]">${demoStr}</span>` : ""}
+              ${it.chief_complaint ? `<span class="text-[11px] text-[var(--muted)]">主訴: <span class="font-semibold text-[var(--navy-800)]">${escapeHtml(it.chief_complaint)}</span></span>` : ""}
             </div>
             ${it.content ? `<div class="text-[12px] text-[var(--navy-800)] leading-relaxed whitespace-pre-wrap">${escapeHtml(it.content)}</div>` : `<div class="text-[11px] text-[var(--muted)] italic">（内容の記載なし）</div>`}
-          </div>
-        `).join("")}
+          </div>`;
+        }).join("")}
       </div>
     </div>`;
 }
@@ -2632,7 +2660,7 @@ function doExport() {
     "休憩確保","不足時間(分)","対象人数","応援要請","応援なし理由",
     "チーム連携","チーム連携_場面","他機関連携","他機関連携_場面","心理的安全性","心理的安全性_場面",
     "接遇","待ち時間配慮","不安軽減","患者家族コメント",
-    "ケース有無","ケース件数","搬送区分（｜区切り）","ケースID（｜区切り）","ケース内容（｜｜区切り）",
+    "ケース有無","ケース件数","搬送区分（｜区切り）","年齢（｜区切り）","性別（｜区切り）","主訴（｜区切り）","ケース内容（｜｜区切り）",
     "good job数","good job対象者（｜区切り）","good jobコメント（｜｜区切り）",
     "共有事項","修正日時"
   ];
@@ -2643,7 +2671,9 @@ function doExport() {
     const gjComments = gjList.map(g => (g.comment || "").replace(/\n/g, " ")).join("｜｜");
     const caseItems = getCaseItems(r);
     const caseTypes = caseItems.map(it => it.type || "").join("｜");
-    const caseIds = caseItems.map(it => it.case_id || "").join("｜");
+    const caseAges = caseItems.map(it => it.age || "").join("｜");
+    const caseGenders = caseItems.map(it => it.gender || "").join("｜");
+    const caseChiefs = caseItems.map(it => (it.chief_complaint || "").replace(/\n/g, " ")).join("｜");
     const caseContents = caseItems.map(it => (it.content || "").replace(/\n/g, " ")).join("｜｜");
     return [
       idx + 1, r.date, r.saved_time, r.shift || "", r.reporter || "",
@@ -2654,7 +2684,7 @@ function doExport() {
       r.team_state.external_collab || "", r.team_state.external_collab_note || "",
       r.team_state.psych_safety || "", r.team_state.psych_safety_note || "",
       r.patient_care.hospitality || "", r.patient_care.wait_care || "", r.patient_care.anxiety_relief || "", r.patient_care.comment || "",
-      r.case.exists || "", caseItems.length, caseTypes, caseIds, caseContents,
+      r.case.exists || "", caseItems.length, caseTypes, caseAges, caseGenders, caseChiefs, caseContents,
       gjList.length, gjTargets, gjComments,
       r.share || "",
       r.updated_at_ms ? formatUpdatedAt(r.updated_at_ms) : ""
