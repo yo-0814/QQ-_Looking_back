@@ -1603,6 +1603,11 @@ async function syncDeleteRecord(id) {
     });
     return { synced: true };
   } catch (err) {
+    // not_found はすでに削除済みなので成功扱い
+    const msg = String(err.message || err);
+    if (msg.includes("not_found")) {
+      return { synced: true, alreadyGone: true };
+    }
     console.warn("GAS delete failed, queuing:", err);
     enqueueSync("delete", { id });
     return { queued: true, error: String(err) };
@@ -1630,6 +1635,12 @@ async function flushSyncQueue() {
       await postToGas(body);
       flushed++;
     } catch (err) {
+      // not_found は「すでに削除されている」ので成功扱いにしてキューから除外
+      const msg = String(err.message || err);
+      if (item.action === "delete" && msg.includes("not_found")) {
+        flushed++;
+        continue;
+      }
       console.warn("flush item failed:", err, item);
       failed++;
       remaining.push(item); // 失敗したものは残す
