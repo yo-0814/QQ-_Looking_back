@@ -1064,6 +1064,19 @@
         CSVエクスポート
       </button>
     </div>
+
+    <!-- 履歴全削除 -->
+    <div class="card p-5 border-dashed" style="border-color:#fecaca">
+      <div class="flex items-center gap-2 mb-2">
+        <svg viewBox="0 0 24 24" width="16" height="16" class="ico" style="color:var(--bad)"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <div class="font-display font-bold text-[15px]" style="color:var(--bad)">履歴を全削除</div>
+      </div>
+      <p class="text-[12px] text-[var(--muted)] mb-3 leading-relaxed">すべての振り返り記録を削除します（ローカル＋クラウド両方）。元に戻せないため、必要なデータは事前にCSVエクスポートしてください。4桁の暗証番号の入力が必要です。</p>
+      <button id="purgeBtn" class="btn-secondary w-full flex items-center justify-center gap-2" style="color:var(--bad);border-color:#fecaca">
+        <svg viewBox="0 0 24 24" width="16" height="16" class="ico"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        履歴を全削除
+      </button>
+    </div>
   </section>
 
 </main>
@@ -1237,6 +1250,48 @@
   </div>
 </div>
 
+<!-- ============ MODAL: PURGE PIN（履歴全削除用） ============ -->
+<div class="modal-backdrop" id="purgePinModal">
+  <div class="modal">
+    <div class="p-5">
+      <div class="flex items-start gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background:#fef2f2;color:var(--bad)">
+          <svg viewBox="0 0 24 24" width="18" height="18" class="ico"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div>
+          <div class="font-display font-bold text-[16px] mb-1" style="color:var(--bad)">履歴全削除の確認</div>
+          <p class="text-[12px] text-[var(--muted)] leading-relaxed">削除を実行するには暗証番号を入力してください。<br><strong>削除した記録は元に戻せません。</strong></p>
+        </div>
+      </div>
+      <div class="flex gap-2 justify-center mb-3" id="purgePinDots">
+        <div class="pin-dot" data-i="0"></div>
+        <div class="pin-dot" data-i="1"></div>
+        <div class="pin-dot" data-i="2"></div>
+        <div class="pin-dot" data-i="3"></div>
+      </div>
+      <input type="tel" inputmode="numeric" maxlength="4" id="purgePinInput" class="fld text-center num-tabular tracking-[0.5em]" placeholder="----" autocomplete="off" />
+      <div id="purgePinError" class="text-[12px] text-red-600 mt-2 text-center font-semibold hidden">暗証番号が違います</div>
+    </div>
+    <div class="grid grid-cols-2 gap-0 border-t border-[var(--line)]">
+      <button class="p-4 text-[var(--muted)] font-semibold border-r border-[var(--line)]" onclick="closeModal('purgePinModal')">キャンセル</button>
+      <button class="p-4 font-bold" id="purgePinConfirmBtn" style="color:var(--bad)">削除する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: PURGE PROGRESS（削除進行中） ============ -->
+<div class="modal-backdrop" id="purgeProgressModal">
+  <div class="modal">
+    <div class="p-6 text-center">
+      <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style="background:var(--soft-info);color:var(--navy-700)">
+        <svg viewBox="0 0 24 24" width="22" height="22" class="ico" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.2-8.5"/></svg>
+      </div>
+      <div class="font-display font-bold text-[15px] mb-1">削除中...</div>
+      <p class="text-[12px] text-[var(--muted)]" id="purgeProgressText">クラウドからも削除しています</p>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1402,6 +1457,7 @@ function init() {
   setupFilters();
   setupSaveFlow();
   setupExport();
+  setupPurge();
   setupNotification();
   setupGoodJobs();
   setupCases();
@@ -3368,6 +3424,140 @@ function doExport() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   toast("CSVをダウンロードしました");
+}
+
+// ════════════════════════════════════════════════════════════════
+//  履歴全削除（PIN認証付き、ローカル + GAS の両方を削除）
+// ════════════════════════════════════════════════════════════════
+function setupPurge() {
+  const btn = $("#purgeBtn");
+  if (!btn) return;
+
+  // 削除ボタン → PIN モーダルを開く
+  btn.addEventListener("click", () => {
+    const total = loadAll().length;
+    if (total === 0) {
+      toast("削除する記録がありません");
+      return;
+    }
+    $("#purgePinInput").value = "";
+    $("#purgePinError").classList.add("hidden");
+    updatePurgePinDots("");
+    openModal("purgePinModal");
+    setTimeout(() => $("#purgePinInput").focus(), 100);
+  });
+
+  // PIN 入力欄
+  $("#purgePinInput").addEventListener("input", (e) => {
+    const v = e.target.value.replace(/\D/g, "").slice(0, 4);
+    e.target.value = v;
+    updatePurgePinDots(v);
+    $("#purgePinError").classList.add("hidden");
+  });
+  $("#purgePinInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      $("#purgePinConfirmBtn").click();
+    }
+  });
+
+  // PIN 確認ボタン
+  $("#purgePinConfirmBtn").addEventListener("click", async () => {
+    const v = $("#purgePinInput").value;
+    if (v !== PIN_CODE) {
+      $("#purgePinError").classList.remove("hidden");
+      return;
+    }
+    closeModal("purgePinModal");
+    await doPurgeAll();
+  });
+}
+
+function updatePurgePinDots(v) {
+  $$("#purgePinDots .pin-dot").forEach((d, i) => {
+    d.dataset.filled = v.length > i ? "true" : "false";
+    d.textContent = v[i] ? "●" : "";
+  });
+}
+
+// 履歴を全削除する本処理
+// - ローカル：完全クリア
+// - GAS：管理者モードでオンライン時のみ削除（一括削除APIは無いので個別delete送信）
+// - 未送信キュー：保護せず一緒にクリア（削除前提なので残す意味がない）
+// - 既読リスト：クリア
+async function doPurgeAll() {
+  const all = loadAll();
+  const total = all.length;
+  if (total === 0) {
+    toast("削除する記録がありません");
+    return;
+  }
+
+  openModal("purgeProgressModal");
+  const progressText = $("#purgeProgressText");
+
+  // GAS から削除（管理者モード + オンライン時のみ）
+  let gasDeleted = 0;
+  let gasFailed = 0;
+  const canRemote = getRole() === "admin" && isOnline();
+
+  if (canRemote) {
+    progressText.textContent = `クラウドから削除中... 0 / ${total}`;
+    for (let i = 0; i < all.length; i++) {
+      const rec = all[i];
+      try {
+        await postToGas({
+          secret: GAS_SECRET,
+          action: "delete",
+          adminToken: GAS_ADMIN_TOKEN,
+          id: rec.id,
+        });
+        gasDeleted++;
+      } catch (err) {
+        const msg = String(err.message || err);
+        if (msg.includes("not_found")) {
+          // 既に GAS に無い → 削除成功扱い
+          gasDeleted++;
+        } else {
+          gasFailed++;
+        }
+      }
+      progressText.textContent = `クラウドから削除中... ${i + 1} / ${total}`;
+    }
+  } else {
+    progressText.textContent = "ローカルから削除中...";
+  }
+
+  // ローカルを完全クリア
+  saveAll([]);
+  saveSyncQueue([]);          // 未送信キューもクリア（削除前提なので残す意味なし）
+  saveReadIds(new Set());     // 既読リストもクリア
+  // 編集中だった場合はリセット
+  if (editingId) resetForm();
+
+  // UI リフレッシュ
+  refreshReporterList();
+  refreshNotificationBadge();
+  updateSyncBadge();
+  renderHistory();
+  renderStats();
+
+  closeModal("purgeProgressModal");
+
+  // 結果通知
+  if (canRemote) {
+    if (gasFailed === 0) {
+      toast(`${total}件をすべて削除しました`);
+    } else {
+      toast(`${total}件削除（クラウド側で${gasFailed}件失敗）`);
+    }
+  } else {
+    if (getRole() !== "admin") {
+      toast(`ローカルの${total}件を削除しました`);
+    } else {
+      toast(`ローカルの${total}件を削除（オフラインのためクラウドは未処理）`);
+    }
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
