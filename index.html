@@ -2523,10 +2523,11 @@ async function flushSyncQueue() {
   return { flushed, failed };
 }
 
-// 管理者モード時：GAS から全レコードを取得して localStorage を GAS の内容で上書き
+// GAS から全レコードを取得して localStorage を GAS の内容で上書き
+// 管理者モード/入力専用モードどちらでも実行可能（共有事項のため）
 // （GAS を「正」として扱うが、未送信キューにあるレコードは保護する）
 async function pullFromGas() {
-  if (getRole() !== "admin") return { skipped: true };
+  if (!getRole()) return { skipped: true };  // ロール未選択時のみスキップ
   if (!isOnline()) return { error: "offline" };
 
   const url = `${GAS_URL}?secret=${encodeURIComponent(GAS_SECRET)}&adminToken=${encodeURIComponent(GAS_ADMIN_TOKEN)}`;
@@ -2651,10 +2652,10 @@ function applyRole() {
     if (lastLabel) lastLabel.textContent = "最終同期: " + formatLastSync();
     updateSyncBadge();
   } else if (isInput) {
-    // 入力専用：履歴・統計・通知ベルを隠す、入力タブを強制アクティブ
+    // 入力専用：履歴・統計を隠す、入力タブを強制アクティブ、ベルは表示
     histTabBtn.classList.add("hidden");
     statsTabBtn.classList.add("hidden");
-    bellBtn.classList.add("hidden");
+    bellBtn.classList.remove("hidden");  // 共有事項を読めるように表示
     lockBtn.classList.remove("hidden");
     // 入力タブを必ずアクティブに
     $$(".tab-btn").forEach(b => b.dataset.active = (b.dataset.tab === "input" ? "true" : "false"));
@@ -2663,6 +2664,26 @@ function applyRole() {
     $("#tab-stats").classList.add("hidden");
     // ロックアイコン：閉じた鍵
     $("#lockToggleIcon").innerHTML = `<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>`;
+    // 通知バッジを更新
+    refreshNotificationBadge();
+  }
+}
+
+// ロール選択時/切替時に GAS から最新データを取得する
+async function pullOnRoleChange() {
+  if (!isOnline()) return;
+  try {
+    // スタッフ名簿
+    pullStaffFromGas().catch(err => console.warn("staff pull failed:", err));
+    // 記録（共有事項を含む）
+    await pullFromGas();
+    refreshNotificationBadge();
+    if (getRole() === "admin") {
+      renderHistory();
+      renderStats();
+    }
+  } catch (err) {
+    console.warn("pull on role change failed:", err);
   }
 }
 
@@ -2680,6 +2701,7 @@ function setupRoleManagement() {
     closeModal("roleModal");
     applyRole();
     toast("入力専用モードに設定しました");
+    pullOnRoleChange();
   });
 
   $("#roleSelectAdmin").addEventListener("click", () => {
@@ -2688,6 +2710,7 @@ function setupRoleManagement() {
       setRole("admin");
       applyRole();
       toast("管理者モードに切り替えました");
+      pullOnRoleChange();
     });
   });
 
@@ -2699,12 +2722,14 @@ function setupRoleManagement() {
       setRole("input");
       applyRole();
       toast("入力専用モードに切り替えました");
+      pullOnRoleChange();
     } else {
       // 入力専用→管理者へ（PIN必要）
       openAdminPin(() => {
         setRole("admin");
         applyRole();
         toast("管理者モードに切り替えました");
+        pullOnRoleChange();
       });
     }
   });
@@ -2758,6 +2783,18 @@ function setupRoleManagement() {
   // 起動時にスタッフ名簿をプル（誰でも実行可能）
   if (isOnline()) {
     pullStaffFromGas().catch(err => console.warn("staff pull on startup failed:", err));
+  }
+
+  // 起動時に記録をプル（共有事項を最新化、ロール選択済みのみ）
+  if (isOnline() && getRole()) {
+    pullFromGas().then(() => {
+      refreshNotificationBadge();
+      // 履歴・統計タブが表示中なら再描画
+      if (getRole() === "admin") {
+        renderHistory();
+        renderStats();
+      }
+    }).catch(err => console.warn("records pull on startup failed:", err));
   }
 }
 
