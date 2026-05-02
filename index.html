@@ -739,6 +739,63 @@
     border: 1px solid transparent;
     cursor: pointer;
   }
+
+  /* 管理者専用UIを入力モードで非表示 */
+  body[data-role="input"] .admin-only {
+    display: none !important;
+  }
+
+  /* お疲れリアクション */
+  .otsukare-row {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--navy-700);
+    user-select: none;
+  }
+  .otsukare-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+  .otsukare-count {
+    font-weight: 700;
+    color: var(--bad);
+    font-variant-numeric: tabular-nums;
+  }
+  .otsukare-hint {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  /* ダブルタップ時のフローティングハート */
+  .otsukare-floating {
+    position: fixed;
+    pointer-events: none;
+    font-size: 80px;
+    z-index: 9999;
+    animation: otsukare-float 800ms cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+    transform: translate(-50%, -50%);
+  }
+  @keyframes otsukare-float {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    60% { opacity: 1; transform: translate(-50%, -90%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -130%) scale(0.8); }
+  }
+  /* 押した瞬間のカウントバウンス */
+  .otsukare-count.bump {
+    animation: otsukare-bump 400ms ease-out;
+  }
+  @keyframes otsukare-bump {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.4); color: var(--bad); }
+    100% { transform: scale(1); }
+  }
 </style>
 </head>
 <body class="pb-24">
@@ -1250,7 +1307,7 @@
     <div id="statsContent"></div>
 
     <!-- スタッフ名簿管理 -->
-    <div class="card p-5">
+    <div class="card p-5 admin-only">
       <div class="flex items-center gap-2 mb-2">
         <svg viewBox="0 0 24 24" width="16" height="16" class="ico text-[var(--navy-700)]"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <div class="font-display font-bold text-[15px]">スタッフ名簿管理</div>
@@ -1263,7 +1320,7 @@
     </div>
 
     <!-- CSV export -->
-    <div class="card p-5 border-dashed">
+    <div class="card p-5 border-dashed admin-only">
       <div class="flex items-center gap-2 mb-2">
         <svg viewBox="0 0 24 24" width="16" height="16" class="ico text-[var(--navy-700)]"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <div class="font-display font-bold text-[15px]">データエクスポート</div>
@@ -1276,7 +1333,7 @@
     </div>
 
     <!-- 履歴全削除 -->
-    <div class="card p-5 border-dashed" style="border-color:#fecaca">
+    <div class="card p-5 border-dashed admin-only" style="border-color:#fecaca">
       <div class="flex items-center gap-2 mb-2">
         <svg viewBox="0 0 24 24" width="16" height="16" class="ico" style="color:var(--bad)"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         <div class="font-display font-bold text-[15px]" style="color:var(--bad)">履歴を全削除</div>
@@ -2503,6 +2560,9 @@ async function flushSyncQueue() {
       } else if (item.action === "staff_delete") {
         body.adminToken = GAS_ADMIN_TOKEN;
         body.id = item.payload.id;
+      } else if (item.action === "otsukare") {
+        body.id = item.payload.id;
+        body.count = item.payload.count;
       }
       await postToGas(body);
       flushed++;
@@ -2510,6 +2570,11 @@ async function flushSyncQueue() {
       // not_found は「すでに削除されている」ので成功扱いにしてキューから除外
       const msg = String(err.message || err);
       if ((item.action === "delete" || item.action === "staff_delete") && msg.includes("not_found")) {
+        flushed++;
+        continue;
+      }
+      // otsukare で not_found なら、レコード自体が削除されているので無視
+      if (item.action === "otsukare" && msg.includes("not_found")) {
         flushed++;
         continue;
       }
@@ -2555,6 +2620,18 @@ async function pullFromGas() {
   remote.forEach(r => {
     if (r && r.id) map.set(r.id, r);
   });
+
+  // ローカル側のお疲れカウントを尊重するためのマップを作成
+  const localOtsukareMap = new Map();
+  local.forEach(r => {
+    if (r && r.id) {
+      localOtsukareMap.set(r.id, {
+        count: Number(r.otsukare_count || 0),
+        ts: r.otsukare_updated_at_ms || 0,
+      });
+    }
+  });
+
   // 保護対象（未送信のローカルレコード）を追加 or タイムスタンプ比較で残す
   local.forEach(r => {
     if (!r || !r.id) return;
@@ -2572,6 +2649,18 @@ async function pullFromGas() {
     }
     // 保護対象でないローカル記録はリモートに無ければ削除（map に追加しない）
   });
+
+  // お疲れカウントは「ローカルとリモートの最大値」を採用
+  // （連打中に同期しても他端末のカウントを上書きしない）
+  for (const [id, mergedRec] of map.entries()) {
+    const localO = localOtsukareMap.get(id);
+    if (!localO) continue;
+    const remoteCount = Number(mergedRec.otsukare_count || 0);
+    if (localO.count > remoteCount) {
+      mergedRec.otsukare_count = localO.count;
+      mergedRec.otsukare_updated_at_ms = localO.ts;
+    }
+  }
 
   const merged = [...map.values()];
   saveAll(merged);
@@ -2651,21 +2740,26 @@ function applyRole() {
     const lastLabel = $("#lastSyncLabel");
     if (lastLabel) lastLabel.textContent = "最終同期: " + formatLastSync();
     updateSyncBadge();
+    document.body.dataset.role = "admin";
+    // 編集ボタンが表示されるように再描画
+    renderHistory();
+    renderStats();
   } else if (isInput) {
-    // 入力専用：履歴・統計を隠す、入力タブを強制アクティブ、ベルは表示
-    histTabBtn.classList.add("hidden");
-    statsTabBtn.classList.add("hidden");
+    // 入力専用：履歴・統計は閲覧可能、編集系UIのみ管理者用に隠す
+    histTabBtn.classList.remove("hidden");
+    statsTabBtn.classList.remove("hidden");
     bellBtn.classList.remove("hidden");  // 共有事項を読めるように表示
     lockBtn.classList.remove("hidden");
-    // 入力タブを必ずアクティブに
-    $$(".tab-btn").forEach(b => b.dataset.active = (b.dataset.tab === "input" ? "true" : "false"));
-    $("#tab-input").classList.remove("hidden");
-    $("#tab-history").classList.add("hidden");
-    $("#tab-stats").classList.add("hidden");
+    // タブ自体はそのまま（入力にいるならそのまま）
     // ロックアイコン：閉じた鍵
     $("#lockToggleIcon").innerHTML = `<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>`;
     // 通知バッジを更新
     refreshNotificationBadge();
+    // 編集系UIの表示制御（CSS変数で制御）
+    document.body.dataset.role = "input";
+    // 履歴・統計を再描画して編集ボタンを隠す
+    renderHistory();
+    renderStats();
   }
 }
 
@@ -3774,6 +3868,8 @@ function histGoodJobsBlock(r) {
 }
 
 function histActionsBlock(r) {
+  // 編集・削除ボタンは管理者モードのみ表示
+  if (getRole() !== "admin") return "";
   return `
     <div class="mt-3 pt-3 border-t border-[var(--line)] flex gap-2">
       <button type="button" class="flex-1 btn-secondary text-[12px] py-2 flex items-center justify-center gap-1.5" data-action="edit" data-id="${r.id}">
@@ -3787,12 +3883,25 @@ function histActionsBlock(r) {
     </div>`;
 }
 
+// お疲れリアクション表示（記録者・チーム全員へのリアクション）
+function histOtsukareBlock(r) {
+  const count = Number(r.otsukare_count || 0);
+  const ns = r.team?.nurses || 0;
+  const dr = r.team?.doctors || 0;
+  return `
+    <div class="otsukare-row">
+      <span class="otsukare-icon">💪</span>
+      <span>お疲れさま <span class="otsukare-count" data-otsukare-count>${count}</span></span>
+      <span class="otsukare-hint">ダブルタップで応援（Ns ${ns} / Dr ${dr}）</span>
+    </div>`;
+}
+
 function histCardHtml(r) {
   const breakBad = r.workload.break_secured === "確保できなかった";
   const hasCase = r.case && r.case.exists === "あり";
   const pat = r.patient_care;
   return `
-    <div class="hist-card">
+    <div class="hist-card" data-record-id="${escapeHtml(r.id)}">
       <div class="flex items-start justify-between gap-3 mb-2">
         <div>
           <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -3815,6 +3924,7 @@ function histCardHtml(r) {
       ${histGoodJobsBlock(r)}
       ${r.share ? `<div class="mt-2 text-[11px] text-[var(--navy-700)] bg-[var(--soft-info)] p-2 rounded-md"><span class="font-semibold">💬 共有事項</span><br>${escapeHtml(r.share)}</div>` : ""}
       ${r.updated_at_ms ? `<div class="mt-2 text-[10px] text-[var(--muted)] italic">※ ${formatUpdatedAt(r.updated_at_ms)}に修正</div>` : ""}
+      ${histOtsukareBlock(r)}
       ${histActionsBlock(r)}
     </div>`;
 }
@@ -3856,6 +3966,123 @@ function renderHistory() {
       else if (action === "delete") askDeleteRecord(id);
     });
   });
+
+  // ダブルタップで「お疲れ」リアクション
+  $("#histList").querySelectorAll(".hist-card").forEach(card => {
+    attachOtsukareDoubleTap(card);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  「お疲れ」リアクション（ダブルタップ + 加算式）
+// ════════════════════════════════════════════════════════════════
+// ダブルタップ検出 + Otsukareインクリメント
+function attachOtsukareDoubleTap(cardEl) {
+  if (!cardEl || cardEl.dataset.otsukareInit === "true") return;
+  cardEl.dataset.otsukareInit = "true";
+
+  const recordId = cardEl.dataset.recordId;
+  if (!recordId) return;
+
+  // ダブルタップ判定（タッチ・クリック共通）
+  let lastTapTime = 0;
+  const DOUBLE_TAP_THRESHOLD = 350; // ms
+
+  const handleTap = (clientX, clientY) => {
+    const now = Date.now();
+    if (now - lastTapTime < DOUBLE_TAP_THRESHOLD) {
+      // ダブルタップ成立
+      lastTapTime = 0;
+      doOtsukareReact(recordId, cardEl, clientX, clientY);
+    } else {
+      lastTapTime = now;
+    }
+  };
+
+  // タッチ（モバイル）
+  cardEl.addEventListener("touchend", (e) => {
+    // ボタン要素のタップは除外（編集・削除との競合を防ぐ）
+    if (e.target.closest("button") || e.target.closest("a")) return;
+    const t = e.changedTouches[0];
+    if (!t) return;
+    handleTap(t.clientX, t.clientY);
+  }, { passive: true });
+
+  // クリック（PC）
+  cardEl.addEventListener("click", (e) => {
+    if (e.target.closest("button") || e.target.closest("a")) return;
+    // タッチイベントが処理した場合は dblclick とのダブル発火を避けるため何もしない
+    // （モバイル Safari では touchend → click と両方発火する）
+    // → タッチ環境では既に lastTapTime がリセットされているのでスルー
+    handleTap(e.clientX, e.clientY);
+  });
+
+  // ダブルクリック（PC：素早いクリック）
+  cardEl.addEventListener("dblclick", (e) => {
+    if (e.target.closest("button") || e.target.closest("a")) return;
+    e.preventDefault();
+    doOtsukareReact(recordId, cardEl, e.clientX, e.clientY);
+  });
+}
+
+// 「お疲れ」を1回送る（ローカル更新 + アニメーション + GAS同期）
+function doOtsukareReact(recordId, cardEl, x, y) {
+  const all = loadAll();
+  const idx = all.findIndex(r => r.id === recordId);
+  if (idx < 0) return;
+  const rec = all[idx];
+  rec.otsukare_count = Number(rec.otsukare_count || 0) + 1;
+  // 直接 saved_at_ms / updated_at_ms は変えない（編集と区別）
+  rec.otsukare_updated_at_ms = Date.now();
+  saveAll(all);
+
+  // UI 更新
+  const countEl = cardEl.querySelector("[data-otsukare-count]");
+  if (countEl) {
+    countEl.textContent = rec.otsukare_count;
+    countEl.classList.remove("bump");
+    void countEl.offsetWidth; // reflow でアニメ再生
+    countEl.classList.add("bump");
+  }
+
+  // ハートのフローティング演出
+  showOtsukareFloating(x, y);
+
+  // GAS 同期（非同期、エラーは無視）
+  syncOtsukareReact(recordId, rec.otsukare_count).catch(err =>
+    console.warn("otsukare sync failed:", err)
+  );
+}
+
+function showOtsukareFloating(x, y) {
+  const el = document.createElement("div");
+  el.className = "otsukare-floating";
+  el.textContent = "💪";
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// GAS にお疲れカウントを送信
+async function syncOtsukareReact(recordId, newCount) {
+  if (!isOnline()) {
+    enqueueSync("otsukare", { id: recordId, count: newCount });
+    return { queued: true };
+  }
+  try {
+    await postToGas({
+      secret: GAS_SECRET,
+      action: "otsukare",
+      id: recordId,
+      count: newCount,
+    });
+    return { synced: true };
+  } catch (err) {
+    console.warn("GAS otsukare failed, queuing:", err);
+    enqueueSync("otsukare", { id: recordId, count: newCount });
+    return { queued: true };
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
