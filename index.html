@@ -3985,7 +3985,9 @@ function attachOtsukareDoubleTap(cardEl) {
 
   // ダブルタップ判定（タッチ・クリック共通）
   let lastTapTime = 0;
+  let lastTouchEndTime = 0;  // touchend が発火した時刻（直後の click を抑制するため）
   const DOUBLE_TAP_THRESHOLD = 350; // ms
+  const TOUCH_CLICK_SUPPRESS_MS = 500; // touchend 後この時間内の click は無視
 
   const handleTap = (clientX, clientY) => {
     const now = Date.now();
@@ -4004,21 +4006,24 @@ function attachOtsukareDoubleTap(cardEl) {
     if (e.target.closest("button") || e.target.closest("a")) return;
     const t = e.changedTouches[0];
     if (!t) return;
+    lastTouchEndTime = Date.now();
     handleTap(t.clientX, t.clientY);
   }, { passive: true });
 
   // クリック（PC）
+  // ※ モバイルでは touchend → click と両方発火するため、
+  //   touchend 直後の click はスキップして二重カウントを防ぐ
   cardEl.addEventListener("click", (e) => {
     if (e.target.closest("button") || e.target.closest("a")) return;
-    // タッチイベントが処理した場合は dblclick とのダブル発火を避けるため何もしない
-    // （モバイル Safari では touchend → click と両方発火する）
-    // → タッチ環境では既に lastTapTime がリセットされているのでスルー
+    if (Date.now() - lastTouchEndTime < TOUCH_CLICK_SUPPRESS_MS) return;
     handleTap(e.clientX, e.clientY);
   });
 
   // ダブルクリック（PC：素早いクリック）
   cardEl.addEventListener("dblclick", (e) => {
     if (e.target.closest("button") || e.target.closest("a")) return;
+    // touchend 由来でない純粋な PC ダブルクリックの場合のみ処理
+    if (Date.now() - lastTouchEndTime < TOUCH_CLICK_SUPPRESS_MS) return;
     e.preventDefault();
     doOtsukareReact(recordId, cardEl, e.clientX, e.clientY);
   });
