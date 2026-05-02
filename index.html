@@ -3885,13 +3885,10 @@ function histActionsBlock(r) {
 // お疲れリアクション表示（記録者・チーム全員へのリアクション）
 function histOtsukareBlock(r) {
   const count = Number(r.otsukare_count || 0);
-  const ns = r.team?.nurses || 0;
-  const dr = r.team?.doctors || 0;
   return `
     <div class="otsukare-row">
       <span class="otsukare-icon">💪</span>
       <span>お疲れさま <span class="otsukare-count" data-otsukare-count>${count}</span></span>
-      <span class="otsukare-hint">ダブルタップで応援（Ns ${ns} / Dr ${dr}）</span>
     </div>`;
 }
 
